@@ -13,6 +13,52 @@
     display: flex; flex-direction: column; align-items: center;
   }
   h1 { margin: 0 0 10px; font-size: 22px; }
+  .mode-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+  .mode-tabs button {
+    background: #2c3e50; color: #bdc3c7;
+    padding: 8px 22px;
+    border-radius: 6px 6px 0 0;
+    border: none; cursor: pointer;
+    font-size: 14px; font-weight: bold;
+  }
+  .mode-tabs button.active {
+    background: #1abc9c; color: white;
+  }
+
+  /* ---- editor toolbar ---- */
+  #editor-bar {
+    background: #2c3e50; padding: 12px 16px; border-radius: 8px;
+    margin-bottom: 12px; display: none;
+    flex-wrap: wrap; gap: 14px; align-items: center;
+    max-width: 720px;
+  }
+  #editor-bar.visible { display: flex; }
+  #editor-bar > div { display: flex; align-items: center; gap: 6px; }
+  #editor-bar label { font-size: 12px; color: #bdc3c7; }
+  .swatch {
+    width: 28px; height: 28px;
+    border-radius: 6px; cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform .08s;
+  }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch.selected { border-color: #ecf0f1; }
+  select, input[type="number"] {
+    background: #34495e; color: white; border: 1px solid #7f8c8d;
+    padding: 4px 8px; border-radius: 4px; font-size: 13px;
+  }
+  input[type="number"] { width: 60px; }
+  .ed-btn {
+    background: #7f8c8d; color: white; border: none;
+    padding: 6px 14px; border-radius: 5px; cursor: pointer;
+    font-size: 12px; font-weight: bold;
+  }
+  .ed-btn.danger { background: #e74c3c; }
+  .ed-btn.success { background: #27ae60; }
+  .ed-btn.eraser { background: #f39c12; }
+  .ed-btn.eraser.active { background: #e67e22; outline: 2px solid white; }
+
+  /* ---- slot ---- */
   #slot {
     background: #2c3e50; border-radius: 8px;
     padding: 10px 14px; margin: 10px 0;
@@ -29,6 +75,8 @@
     border: 2px solid #ecf0f1;
     box-shadow: 0 2px 4px rgba(0,0,0,.4);
   }
+
+  /* ---- board ---- */
   #board-wrap {
     background: #7f8c8d; border-radius: 10px;
     padding: 30px; position: relative;
@@ -36,6 +84,14 @@
     margin: 10px 0;
   }
   #board { position: relative; }
+  .grid-cell {
+    position: absolute;
+    border: 1px dashed rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.05);
+    cursor: pointer;
+  }
+  .grid-cell:hover { background: rgba(255,255,255,0.15); }
   .block {
     position: absolute;
     border-radius: 8px;
@@ -51,6 +107,7 @@
   .block.top { border-color: #ecf0f1; }
   .block.top:hover { transform: translateY(-3px); }
   .block.locked { cursor: not-allowed; }
+  .block.editable { cursor: pointer !important; }
   .block .id { font-size: 11px; opacity: .85; }
   .block .name { font-size: 12px; }
   .block .badge {
@@ -65,31 +122,54 @@
     border-radius: 5px;
   }
   .block .badge.bomb-warning { background: #e74c3c; color: white; }
-  .controls {
-    display: flex; gap: 8px; margin: 14px 0;
-  }
-  button {
+
+  /* ---- controls ---- */
+  .controls { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; justify-content: center; }
+  button.main {
     border: none; border-radius: 6px;
     padding: 10px 20px;
     font-size: 14px; font-weight: bold;
     color: white; cursor: pointer;
-    transition: filter .1s;
   }
-  button:hover { filter: brightness(1.1); }
+  button.main:hover { filter: brightness(1.1); }
   .btn-hint    { background: #f39c12; }
   .btn-undo    { background: #3498db; }
   .btn-restart { background: #9b59b6; }
+  .btn-solve   { background: #1abc9c; }
+
   #status {
     min-height: 24px; padding: 8px 14px;
     font-size: 14px;
     background: rgba(0,0,0,.2); border-radius: 6px;
     text-align: center;
-    max-width: 600px;
+    max-width: 700px;
   }
   #status.win    { color: #2ecc71; font-weight: bold; }
   #status.error  { color: #e74c3c; }
   #status.hint   { color: #f1c40f; }
   #status.info   { color: #85c1e9; }
+
+  /* ---- import/export modal ---- */
+  #io-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  #io-modal.visible { display: flex; }
+  #io-modal .box {
+    background: #2c3e50; padding: 20px; border-radius: 10px;
+    width: 90%; max-width: 500px;
+  }
+  #io-modal textarea {
+    width: 100%; height: 200px;
+    background: #34495e; color: white;
+    border: 1px solid #7f8c8d; border-radius: 4px;
+    font-family: monospace; font-size: 12px;
+    padding: 8px;
+  }
+  #io-modal .row { display: flex; gap: 8px; margin-top: 10px; }
 </style>
 </head>
 
@@ -97,84 +177,151 @@
 
 <h1>Match-3 Tile Solver</h1>
 
+<div class="mode-tabs">
+  <button id="tab-play" class="active" onclick="setMode('play')">▶ Play</button>
+  <button id="tab-edit" onclick="setMode('edit')">✎ Build Level</button>
+</div>
+
+<!-- Editor toolbar -->
+<div id="editor-bar">
+  <div>
+    <label>Color:</label>
+    <div id="palette"></div>
+  </div>
+  <div>
+    <label>Kind:</label>
+    <select id="kind-sel" onchange="onEditChange()">
+      <option value="normal">Normal</option>
+      <option value="frozen">Frozen</option>
+      <option value="bomb">Bomb</option>
+    </select>
+  </div>
+  <div>
+    <label>Layer:</label>
+    <input type="number" id="layer-inp" value="0" min="0" max="9" onchange="onEditChange()">
+  </div>
+  <div id="thresh-wrap" style="display:none">
+    <label>Threshold:</label>
+    <input type="number" id="thresh-inp" value="3" min="1" max="20" onchange="onEditChange()">
+  </div>
+  <div style="flex:1"></div>
+  <button class="ed-btn eraser" id="eraser-btn" onclick="toggleEraser()">Eraser</button>
+  <button class="ed-btn danger" onclick="clearAllBlocks()">Clear All</button>
+  <button class="ed-btn" onclick="openIO('export')">Save</button>
+  <button class="ed-btn" onclick="openIO('import')">Load</button>
+  <button class="ed-btn success" onclick="setMode('play')">▶ Play This!</button>
+</div>
+
+<!-- Slot (play mode only) -->
 <div id="slot">
   <span class="label" id="slot-label">SLOT 0/7</span>
 </div>
 
 <div id="board-wrap"><div id="board"></div></div>
 
-<div class="controls">
-  <button class="btn-hint"    onclick="hint()">Hint</button>
-  <button class="btn-undo"    onclick="undo()">Undo</button>
-  <button class="btn-restart" onclick="restart()">Restart</button>
+<div class="controls" id="play-controls">
+  <button class="main btn-hint"    onclick="hint()">Hint</button>
+  <button class="main btn-undo"    onclick="undo()">Undo</button>
+  <button class="main btn-restart" onclick="restart()">Restart</button>
+  <button class="main btn-solve"   onclick="autoSolve()">Auto-Solve</button>
 </div>
 
 <div id="status">Click a block to play.</div>
 
+<!-- Import/Export modal -->
+<div id="io-modal">
+  <div class="box">
+    <h3 id="io-title">Save Level</h3>
+    <p id="io-help" style="font-size:13px;color:#bdc3c7;">
+      Copy this text and save it somewhere — paste it back in to load.
+    </p>
+    <textarea id="io-text"></textarea>
+    <div class="row">
+      <button class="ed-btn success" id="io-action">Apply</button>
+      <button class="ed-btn" onclick="closeIO()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================================
-   PUZZLE DEFINITION — edit this list to encode your real stage.
-
-   Each block:  {id, color, layer, x, y, w?, h?, kind?, threshold?}
-     kind: "normal" (default), "frozen", or "bomb"
-     threshold: clicks needed (frozen → thawed, default 3)
-                or before explosion (bomb, default 5)
+   DEFAULT PUZZLE — used the very first time you open the page.
+   After that your own designs are remembered in your browser automatically.
    ========================================================================= */
 
-const BLOCKS = [
-  // layer 0 — bottom
+const DEFAULT_BLOCKS = [
   {id:1, color:"red",    layer:0, x:0, y:0},
   {id:2, color:"red",    layer:0, x:1, y:0},
   {id:3, color:"blue",   layer:0, x:2, y:0},
   {id:4, color:"blue",   layer:0, x:0, y:1},
   {id:5, color:"yellow", layer:0, x:1, y:1},
   {id:6, color:"yellow", layer:0, x:2, y:1},
-
-  // layer 1 — covers some bottom blocks
   {id:7, color:"red",    layer:1, x:0, y:0},
   {id:8, color:"blue",   layer:1, x:1, y:0},
   {id:9, color:"yellow", layer:1, x:2, y:0},
-
-  // layer 2 — frozen + bomb specials
   {id:10, color:"blue",   layer:2, x:1, y:0, kind:"frozen", threshold:3},
   {id:11, color:"yellow", layer:2, x:2, y:0, kind:"bomb",   threshold:5},
 ];
 
-const INITIAL_SLOT = [];   // mid-game? e.g. ["red", "blue"]
-
-/* ========================================================================= */
-
-const MAX_SLOT = 7;
-const BLOCK_SIZE = 80;
+const MAX_SLOT     = 7;
+const BLOCK_SIZE   = 80;
 const LAYER_OFFSET = 7;
+const GRID_W       = 6;   // editor grid width (cells)
+const GRID_H       = 5;   // editor grid height
+const STORAGE_KEY  = "match3_level_v1";
 
 const COLORS = {
   red:"#e74c3c", blue:"#3498db", yellow:"#f1c40f", green:"#2ecc71",
   purple:"#9b59b6", orange:"#e67e22", pink:"#fd79a8", cyan:"#1abc9c",
-  white:"#ecf0f1", black:"#2c3e50", brown:"#8b6f47", gray:"#95a5a6",
+  white:"#ecf0f1", black:"#2c3e50", brown:"#8b6f47",
 };
+const PALETTE_ORDER = ["red","blue","yellow","green","purple","orange","pink","cyan","white","black","brown"];
 const toHex = c => COLORS[c.toLowerCase()] || "#bdc3c7";
 
-// Normalize blocks
-BLOCKS.forEach(b => {
-  b.w = b.w || 1; b.h = b.h || 1;
-  b.kind = b.kind || "normal";
-  if (b.threshold == null) {
-    b.threshold = b.kind === "frozen" ? 3 : b.kind === "bomb" ? 5 : 0;
-  }
-});
+// ============== Mutable level + game state ==============
 
-// =========================================================================
-// Game logic (pure functions)
-// =========================================================================
+let BLOCKS = loadFromStorage() || JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+normalizeBlocks();
+
+let mode = "play";   // "play" or "edit"
+let edit = { color: "red", kind: "normal", layer: 0, threshold: 3, eraser: false };
+let byId, state, history;
+
+function normalizeBlocks() {
+  BLOCKS.forEach(b => {
+    b.w = b.w || 1; b.h = b.h || 1;
+    b.kind = b.kind || "normal";
+    if (b.threshold == null) {
+      b.threshold = b.kind === "frozen" ? 3 : b.kind === "bomb" ? 5 : 0;
+    }
+  });
+  byId = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_) { return null; }
+}
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(BLOCKS));
+}
+function nextId() {
+  return BLOCKS.length === 0 ? 1 : Math.max(...BLOCKS.map(b => b.id)) + 1;
+}
+
+/* =========================================================================
+   GAME LOGIC (same as before)
+   ========================================================================= */
 
 function overlaps(a, b) {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
            a.y + a.h <= b.y || b.y + b.h <= a.y);
 }
-
-function accessibleIds(remainingIds, byId) {
-  const blocks = remainingIds.map(i => byId[i]);
+function accessibleIds(remIds, byId) {
+  const blocks = remIds.map(i => byId[i]);
   const out = new Set();
   for (const b of blocks) {
     let blocked = false;
@@ -185,7 +332,6 @@ function accessibleIds(remainingIds, byId) {
   }
   return out;
 }
-
 function slotAdd(slot, color) {
   const lst = slot.slice();
   let pos = lst.length;
@@ -193,7 +339,6 @@ function slotAdd(slot, color) {
     if (lst[i] === color) { pos = i + 1; break; }
   }
   lst.splice(pos, 0, color);
-
   let changed = true;
   while (changed) {
     changed = false;
@@ -203,63 +348,49 @@ function slotAdd(slot, color) {
       }
     }
   }
-  if (lst.length > MAX_SLOT) return null;
-  return lst;
+  return lst.length > MAX_SLOT ? null : lst;
 }
-
-function isClickable(block, counter) {
-  if (block.kind === "frozen") return counter >= block.threshold;
-  return true;   // normal & bomb (always defusable)
+function isClickable(b, cnt) {
+  if (b.kind === "frozen") return cnt >= b.threshold;
+  return true;
 }
-
 function step(state, clickedId, byId) {
   const counters = new Map(state.counters);
   if (!counters.has(clickedId)) return null;
-
-  const remIds = [...counters.keys()];
-  const access = accessibleIds(remIds, byId);
+  const access = accessibleIds([...counters.keys()], byId);
   if (!access.has(clickedId)) return null;
-
   const clicked = byId[clickedId];
   if (!isClickable(clicked, counters.get(clickedId))) return null;
-
   const newSlot = slotAdd(state.slot, clicked.color);
   if (newSlot === null) return null;
-
-  const newCounters = new Map();
+  const nc = new Map();
   for (const [bid, cnt] of counters) {
     if (bid === clickedId) continue;
     const b = byId[bid];
     if (access.has(bid) && (b.kind === "frozen" || b.kind === "bomb")) {
-      const nc = cnt + 1;
-      if (b.kind === "bomb" && nc >= b.threshold) return null; // explode
-      newCounters.set(bid, b.kind === "frozen" ? Math.min(nc, b.threshold) : nc);
+      const ncnt = cnt + 1;
+      if (b.kind === "bomb" && ncnt >= b.threshold) return null;
+      nc.set(bid, b.kind === "frozen" ? Math.min(ncnt, b.threshold) : ncnt);
     } else {
-      newCounters.set(bid, cnt);
+      nc.set(bid, cnt);
     }
   }
-  return { counters: [...newCounters].sort((a,b)=>a[0]-b[0]), slot: newSlot };
+  return { counters: [...nc].sort((a,b)=>a[0]-b[0]), slot: newSlot };
 }
-
 function stateKey(s) {
   return s.counters.map(([i,c])=>i+":"+c).join(",") + "|" + s.slot.join(",");
 }
-
-function solve(state, byId, maxStates = 200000) {
-  // BFS with state-cap so the browser doesn't hang on huge searches.
+function solve(state, byId, maxStates = 300000) {
   const start = { counters: state.counters.slice(), slot: state.slot.slice() };
   const queue = [{ s: start, path: [] }];
   const visited = new Set([stateKey(start)]);
-
   while (queue.length) {
     const { s, path } = queue.shift();
     if (s.counters.length === 0) return path;
     if (visited.size > maxStates) return null;
-
     const remIds = s.counters.map(([i])=>i);
     const access = accessibleIds(remIds, byId);
     const cmap = new Map(s.counters);
-
     for (const bid of access) {
       const b = byId[bid];
       if (!isClickable(b, cmap.get(bid))) continue;
@@ -274,12 +405,9 @@ function solve(state, byId, maxStates = 200000) {
   return null;
 }
 
-// =========================================================================
-// UI
-// =========================================================================
-
-const byId = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
-let state, history;
+/* =========================================================================
+   UI
+   ========================================================================= */
 
 function setStatus(text, klass="") {
   const el = document.getElementById("status");
@@ -290,10 +418,29 @@ function setStatus(text, klass="") {
 function reset() {
   state = {
     counters: BLOCKS.map(b => [b.id, 0]).sort((a,b)=>a[0]-b[0]),
-    slot: INITIAL_SLOT.slice(),
+    slot: [],
   };
   history = [];
   draw();
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  document.getElementById("tab-play").classList.toggle("active", mode === "play");
+  document.getElementById("tab-edit").classList.toggle("active", mode === "edit");
+  document.getElementById("editor-bar").classList.toggle("visible", mode === "edit");
+  document.getElementById("slot").style.display      = mode === "play" ? "flex" : "none";
+  document.getElementById("play-controls").style.display = mode === "play" ? "flex" : "none";
+
+  if (mode === "play") {
+    saveToStorage();
+    normalizeBlocks();
+    reset();
+    setStatus("Click a block to play.");
+  } else {
+    setStatus("Click an empty cell to place a block. Click an existing block to edit/remove (with Eraser).", "info");
+    drawEditor();
+  }
 }
 
 function draw() {
@@ -312,9 +459,15 @@ function draw() {
     slotEl.appendChild(cell);
   }
 
-  // Board
   const board = document.getElementById("board");
   board.innerHTML = "";
+
+  if (BLOCKS.length === 0) {
+    board.style.width = "300px"; board.style.height = "100px";
+    board.innerHTML = '<div style="text-align:center;padding:30px;color:#bdc3c7;">No blocks. Switch to Build Level to design a stage.</div>';
+    return;
+  }
+
   const remIds = state.counters.map(([i])=>i);
   if (remIds.length === 0) {
     setStatus("🎉  You cleared the board!", "win");
@@ -336,25 +489,22 @@ function draw() {
   board.style.width  = (maxX * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
   board.style.height = (maxY * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
 
-  // Sort by layer ascending (so high layers appear on top via z-index too)
   const sorted = remIds.slice().sort((a,b) => byId[a].layer - byId[b].layer);
   for (const id of sorted) {
     const b = byId[id];
     const cnt = cmap.get(id);
     const off = b.layer * LAYER_OFFSET;
-
     const div = document.createElement("div");
     div.className = "block";
     div.style.background = toHex(b.color);
-    div.style.left   = (b.x * BLOCK_SIZE + off) + "px";
-    div.style.top    = (b.y * BLOCK_SIZE + off) + "px";
+    div.style.left = (b.x * BLOCK_SIZE + off) + "px";
+    div.style.top  = (b.y * BLOCK_SIZE + off) + "px";
     div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
     div.style.height = (b.h * BLOCK_SIZE - 4) + "px";
     div.style.zIndex = b.layer;
 
     const isFrozenLocked = b.kind === "frozen" && cnt < b.threshold;
     const isTop = access.has(id);
-
     if (isTop && !isFrozenLocked) div.classList.add("top");
     if (isFrozenLocked) div.classList.add("locked", "frozen-locked");
 
@@ -363,8 +513,7 @@ function draw() {
       `<div class="name">${b.color}</div>` +
       (isFrozenLocked ?
         `<div class="badge">FROZEN ${cnt}/${b.threshold}</div>` :
-        b.kind === "frozen" && isTop ?
-          `<div class="badge">THAWED</div>` :
+        b.kind === "frozen" && isTop ? `<div class="badge">THAWED</div>` :
         b.kind === "bomb" && isTop ?
           `<div class="badge ${b.threshold-cnt<=2 ? 'bomb-warning':''}">BOMB ${b.threshold-cnt}</div>` :
           ""
@@ -375,10 +524,206 @@ function draw() {
   }
 }
 
+/* =========================================================================
+   EDITOR
+   ========================================================================= */
+
+function drawEditor() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  // Compute visible canvas size (grid + max layer)
+  let maxL = 0;
+  BLOCKS.forEach(b => { maxL = Math.max(maxL, b.layer); });
+  maxL = Math.max(maxL, parseInt(document.getElementById("layer-inp").value) || 0);
+
+  board.style.width  = (GRID_W * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+  board.style.height = (GRID_H * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+
+  // Grid cells (clickable) on the CURRENT layer
+  const off = edit.layer * LAYER_OFFSET;
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      const cell = document.createElement("div");
+      cell.className = "grid-cell";
+      cell.style.left = (x * BLOCK_SIZE + off) + "px";
+      cell.style.top  = (y * BLOCK_SIZE + off) + "px";
+      cell.style.width  = (BLOCK_SIZE - 4) + "px";
+      cell.style.height = (BLOCK_SIZE - 4) + "px";
+      cell.style.zIndex = edit.layer * 10;   // sit above lower-layer blocks
+      cell.onclick = () => placeBlock(x, y);
+      board.appendChild(cell);
+    }
+  }
+
+  // Existing blocks
+  const sorted = BLOCKS.slice().sort((a,b) => a.layer - b.layer);
+  for (const b of sorted) {
+    const off = b.layer * LAYER_OFFSET;
+    const div = document.createElement("div");
+    div.className = "block editable top";
+    div.style.background = toHex(b.color);
+    div.style.left = (b.x * BLOCK_SIZE + off) + "px";
+    div.style.top  = (b.y * BLOCK_SIZE + off) + "px";
+    div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
+    div.style.height = (b.h * BLOCK_SIZE - 4) + "px";
+    div.style.zIndex = b.layer * 10 + 1;
+    div.style.opacity = (b.layer === edit.layer || edit.eraser) ? "1" : "0.55";
+
+    div.innerHTML =
+      `<div class="id">#${b.id} L${b.layer}</div>` +
+      `<div class="name">${b.color}</div>` +
+      (b.kind !== "normal" ? `<div class="badge">${b.kind.toUpperCase()} ${b.threshold}</div>` : "");
+
+    div.onclick = (e) => { e.stopPropagation(); editBlock(b.id); };
+    board.appendChild(div);
+  }
+}
+
+function placeBlock(x, y) {
+  if (edit.eraser) {
+    setStatus("Click an existing block to erase it.", "info");
+    return;
+  }
+  // If a block already exists at exactly this (x,y,layer) — replace it
+  const existing = BLOCKS.find(b => b.x === x && b.y === y && b.layer === edit.layer);
+  if (existing) {
+    existing.color = edit.color;
+    existing.kind  = edit.kind;
+    existing.threshold = edit.kind === "normal" ? 0 : edit.threshold;
+  } else {
+    BLOCKS.push({
+      id: nextId(), color: edit.color, layer: edit.layer,
+      x, y, w: 1, h: 1,
+      kind: edit.kind,
+      threshold: edit.kind === "normal" ? 0 : edit.threshold,
+    });
+  }
+  saveToStorage();
+  normalizeBlocks();
+  drawEditor();
+  setStatus(`Placed ${edit.color} ${edit.kind} block at (${x},${y}) on layer ${edit.layer}.`);
+}
+
+function editBlock(id) {
+  const idx = BLOCKS.findIndex(b => b.id === id);
+  if (idx < 0) return;
+  if (edit.eraser) {
+    BLOCKS.splice(idx, 1);
+    saveToStorage();
+    normalizeBlocks();
+    drawEditor();
+    setStatus(`Removed block #${id}.`);
+    return;
+  }
+  // Otherwise: move editing target to this block (sync settings to it)
+  const b = BLOCKS[idx];
+  edit.color = b.color;
+  edit.kind  = b.kind;
+  edit.layer = b.layer;
+  edit.threshold = b.threshold || 3;
+  syncToolbarFromEdit();
+  setStatus(`Selected #${id} — toolbar updated. Click again to overwrite or use Eraser to delete.`);
+  drawEditor();
+}
+
+function clearAllBlocks() {
+  if (!confirm("Remove ALL blocks?")) return;
+  BLOCKS = [];
+  saveToStorage();
+  normalizeBlocks();
+  drawEditor();
+  setStatus("Board cleared. Place new blocks.");
+}
+
+function toggleEraser() {
+  edit.eraser = !edit.eraser;
+  document.getElementById("eraser-btn").classList.toggle("active", edit.eraser);
+  setStatus(edit.eraser ? "Eraser ON — click a block to remove it." : "Eraser OFF.");
+}
+
+function buildPalette() {
+  const pal = document.getElementById("palette");
+  pal.innerHTML = "";
+  for (const c of PALETTE_ORDER) {
+    const sw = document.createElement("div");
+    sw.className = "swatch";
+    sw.style.background = toHex(c);
+    sw.title = c;
+    if (c === edit.color) sw.classList.add("selected");
+    sw.onclick = () => {
+      edit.color = c;
+      buildPalette();
+    };
+    pal.appendChild(sw);
+  }
+}
+
+function onEditChange() {
+  edit.kind  = document.getElementById("kind-sel").value;
+  edit.layer = parseInt(document.getElementById("layer-inp").value) || 0;
+  edit.threshold = parseInt(document.getElementById("thresh-inp").value) || 3;
+  document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
+  if (mode === "edit") drawEditor();
+}
+function syncToolbarFromEdit() {
+  document.getElementById("kind-sel").value = edit.kind;
+  document.getElementById("layer-inp").value = edit.layer;
+  document.getElementById("thresh-inp").value = edit.threshold;
+  document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
+  buildPalette();
+}
+
+/* ---- Save/Load JSON via modal ---- */
+
+function openIO(kind) {
+  const modal = document.getElementById("io-modal");
+  const ta    = document.getElementById("io-text");
+  const title = document.getElementById("io-title");
+  const help  = document.getElementById("io-help");
+  const action= document.getElementById("io-action");
+  if (kind === "export") {
+    title.textContent = "Save Level (copy this text)";
+    help.textContent  = "Copy this text and save it somewhere. Paste it back via Load to restore the level.";
+    ta.value = JSON.stringify(BLOCKS, null, 2);
+    action.textContent = "Copy to Clipboard";
+    action.onclick = () => {
+      ta.select();
+      navigator.clipboard.writeText(ta.value);
+      setStatus("Copied to clipboard.");
+      closeIO();
+    };
+  } else {
+    title.textContent = "Load Level (paste JSON here)";
+    help.textContent  = "Paste a previously-saved level JSON, then click Apply.";
+    ta.value = "";
+    action.textContent = "Apply";
+    action.onclick = () => {
+      try {
+        const data = JSON.parse(ta.value);
+        if (!Array.isArray(data)) throw new Error("Expected an array.");
+        BLOCKS = data;
+        normalizeBlocks();
+        saveToStorage();
+        closeIO();
+        if (mode === "edit") drawEditor(); else reset();
+        setStatus(`Loaded ${BLOCKS.length} blocks.`);
+      } catch (e) {
+        alert("Invalid JSON: " + e.message);
+      }
+    };
+  }
+  modal.classList.add("visible");
+}
+function closeIO() { document.getElementById("io-modal").classList.remove("visible"); }
+
+/* =========================================================================
+   PLAY ACTIONS
+   ========================================================================= */
+
 function clickBlock(bid) {
   const cmap = new Map(state.counters);
   if (!cmap.has(bid)) return;
-
   const access = accessibleIds([...cmap.keys()], byId);
   if (!access.has(bid)) {
     setStatus(`Block #${bid} is buried — clear what's on top first.`, "info");
@@ -390,7 +735,6 @@ function clickBlock(bid) {
     setStatus(`#${bid} is still frozen — click ${need} other block(s) first.`, "info");
     return;
   }
-
   const nxt = step(state, bid, byId);
   if (!nxt) {
     if (slotAdd(state.slot, b.color) === null) {
@@ -411,33 +755,43 @@ function hint() {
   setStatus("Thinking...");
   setTimeout(() => {
     const sol = solve(state, byId);
-    if (!sol) {
-      setStatus("No solution found from this position. Try Undo.", "error");
-    } else if (sol.length === 0) {
-      setStatus("Already won!", "win");
-    } else {
+    if (!sol) setStatus("No solution found from this position.", "error");
+    else if (sol.length === 0) setStatus("Already won!", "win");
+    else {
       const nb = byId[sol[0]];
       setStatus(`💡 Click #${sol[0]} (${nb.color}) — ${sol.length} moves to win.`, "hint");
     }
   }, 30);
 }
 
+function autoSolve() {
+  if (state.counters.length === 0) { setStatus("Already won!", "win"); return; }
+  setStatus("Solving full puzzle...");
+  setTimeout(() => {
+    const sol = solve(state, byId);
+    if (!sol) { setStatus("No solution found.", "error"); return; }
+    let i = 0;
+    function play() {
+      if (i >= sol.length) { setStatus(`Solved in ${sol.length} moves!`, "win"); return; }
+      clickBlock(sol[i++]);
+      setTimeout(play, 400);
+    }
+    play();
+  }, 30);
+}
+
 function undo() {
-  if (history.length === 0) {
-    setStatus("Nothing to undo.", "info");
-    return;
-  }
+  if (history.length === 0) { setStatus("Nothing to undo.", "info"); return; }
   state = history.pop();
   draw();
   setStatus("Undone.");
 }
+function restart() { reset(); setStatus("Restarted."); }
 
-function restart() {
-  reset();
-  setStatus("Restarted.");
-}
-
-reset();
+/* ---- init ---- */
+buildPalette();
+syncToolbarFromEdit();
+setMode("play");
 </script>
 </body>
 </html>
