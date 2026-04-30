@@ -204,6 +204,14 @@
     <label>Threshold:</label>
     <input type="number" id="thresh-inp" value="3" min="1" max="20" onchange="onEditChange()">
   </div>
+  <div>
+    <label>Grid W:</label>
+    <input type="number" id="grid-w-inp" value="6" min="1" max="20" onchange="onGridSizeChange()">
+  </div>
+  <div>
+    <label>Grid H:</label>
+    <input type="number" id="grid-h-inp" value="5" min="1" max="20" onchange="onGridSizeChange()">
+  </div>
   <div style="flex:1"></div>
   <button class="ed-btn eraser" id="eraser-btn" onclick="toggleEraser()">Eraser</button>
   <button class="ed-btn danger" onclick="clearAllBlocks()">Clear All</button>
@@ -266,9 +274,9 @@ const DEFAULT_BLOCKS = [
 const MAX_SLOT     = 7;
 const BLOCK_SIZE   = 80;
 const LAYER_OFFSET = 7;
-const GRID_W       = 6;   // editor grid width (cells)
-const GRID_H       = 5;   // editor grid height
-const STORAGE_KEY  = "match3_level_v1";
+let   GRID_W       = 6;   // editor grid width  (editable)
+let   GRID_H       = 5;   // editor grid height (editable)
+const STORAGE_KEY  = "match3_level_v2";
 
 const COLORS = {
   red:"#e74c3c", blue:"#3498db", yellow:"#f1c40f", green:"#2ecc71",
@@ -302,11 +310,13 @@ function loadFromStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const data = JSON.parse(raw);
+    if (data.gridW) { GRID_W = data.gridW; GRID_H = data.gridH; }
+    return data.blocks || null;
   } catch (_) { return null; }
 }
 function saveToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(BLOCKS));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ blocks: BLOCKS, gridW: GRID_W, gridH: GRID_H }));
 }
 function nextId() {
   return BLOCKS.length === 0 ? 1 : Math.max(...BLOCKS.map(b => b.id)) + 1;
@@ -671,7 +681,18 @@ function syncToolbarFromEdit() {
   document.getElementById("layer-inp").value = edit.layer;
   document.getElementById("thresh-inp").value = edit.threshold;
   document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
+  document.getElementById("grid-w-inp").value = GRID_W;
+  document.getElementById("grid-h-inp").value = GRID_H;
   buildPalette();
+}
+
+function onGridSizeChange() {
+  const w = parseInt(document.getElementById("grid-w-inp").value) || 6;
+  const h = parseInt(document.getElementById("grid-h-inp").value) || 5;
+  GRID_W = Math.max(1, Math.min(20, w));
+  GRID_H = Math.max(1, Math.min(20, h));
+  saveToStorage();
+  if (mode === "edit") drawEditor();
 }
 
 /* ---- Save/Load JSON via modal ---- */
@@ -685,7 +706,7 @@ function openIO(kind) {
   if (kind === "export") {
     title.textContent = "Save Level (copy this text)";
     help.textContent  = "Copy this text and save it somewhere. Paste it back via Load to restore the level.";
-    ta.value = JSON.stringify(BLOCKS, null, 2);
+    ta.value = JSON.stringify({ blocks: BLOCKS, gridW: GRID_W, gridH: GRID_H }, null, 2);
     action.textContent = "Copy to Clipboard";
     action.onclick = () => {
       ta.select();
@@ -701,10 +722,18 @@ function openIO(kind) {
     action.onclick = () => {
       try {
         const data = JSON.parse(ta.value);
-        if (!Array.isArray(data)) throw new Error("Expected an array.");
-        BLOCKS = data;
+        // Support both old format (plain array) and new format ({blocks,gridW,gridH})
+        if (Array.isArray(data)) {
+          BLOCKS = data;
+        } else if (data.blocks) {
+          BLOCKS = data.blocks;
+          if (data.gridW) { GRID_W = data.gridW; GRID_H = data.gridH; }
+        } else {
+          throw new Error("Unrecognised format.");
+        }
         normalizeBlocks();
         saveToStorage();
+        syncToolbarFromEdit();
         closeIO();
         if (mode === "edit") drawEditor(); else reset();
         setStatus(`Loaded ${BLOCKS.length} blocks.`);
