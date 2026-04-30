@@ -213,6 +213,15 @@
     <input type="number" id="grid-h-inp" value="5" min="1" max="20" onchange="onGridSizeChange()">
   </div>
   <div style="flex:1"></div>
+  <div>
+    <label>Difficulty:</label>
+    <select id="gen-difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+  </div>
+  <button class="ed-btn success" onclick="generatePuzzle()" style="background:#1abc9c">⚡ Generate</button>
   <button class="ed-btn eraser" id="eraser-btn" onclick="toggleEraser()">Eraser</button>
   <button class="ed-btn danger" onclick="clearAllBlocks()">Clear All</button>
   <button class="ed-btn" onclick="openIO('export')">Save</button>
@@ -532,6 +541,119 @@ function draw() {
     div.onclick = () => clickBlock(id);
     board.appendChild(div);
   }
+}
+
+/* =========================================================================
+   PUZZLE GENERATOR
+   ========================================================================= */
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function buildCandidate(colorPool, difficulty) {
+  const totalBlocks = colorPool.length * 3;
+
+  // Assign colors: 3 of each, shuffled
+  const colorList = [];
+  for (const c of colorPool) colorList.push(c, c, c);
+  shuffleArray(colorList);
+
+  // Build a grid position pool, shuffled
+  const allPos = [];
+  for (let x = 0; x < GRID_W; x++)
+    for (let y = 0; y < GRID_H; y++)
+      allPos.push({ x, y });
+  shuffleArray(allPos);
+
+  // Layer sizes: roughly 55% L0, 30% L1, 15% L2
+  // L0 must have at least colorPool.length unique positions
+  // so at least one of each color can start accessible.
+  const numL0 = Math.min(Math.max(colorPool.length, Math.ceil(totalBlocks * 0.55)), allPos.length);
+  const numL1 = Math.min(Math.floor(totalBlocks * 0.30), numL0);
+  const numL2 = totalBlocks - numL0 - numL1;
+
+  const l0pos = allPos.slice(0, numL0);
+  const l1pos = shuffleArray([...l0pos]).slice(0, numL1);            // L1 sits on top of L0
+  const l2pos = numL1 > 0 ? shuffleArray([...l1pos]).slice(0, Math.max(0, numL2)) : [];
+
+  // Flatten into a placement list, shuffle to mix colors across layers
+  const placements = [
+    ...l0pos.map(p => ({ ...p, layer: 0 })),
+    ...l1pos.map(p => ({ ...p, layer: 1 })),
+    ...l2pos.map(p => ({ ...p, layer: 2 })),
+  ];
+  shuffleArray(placements);
+
+  // Build blocks
+  const blocks = placements.slice(0, totalBlocks).map((p, i) => ({
+    id: i + 1, color: colorList[i],
+    layer: p.layer, x: p.x, y: p.y, w: 1, h: 1,
+    kind: "normal", threshold: 0,
+  }));
+
+  // Apply specials for higher difficulties
+  if (difficulty !== "easy") {
+    const upper = blocks.filter(b => b.layer > 0);
+    shuffleArray(upper);
+    if (upper.length >= 1) {
+      upper[0].kind = "frozen";
+      upper[0].threshold = 3;
+    }
+    if (difficulty === "hard" && upper.length >= 2) {
+      upper[1].kind = "bomb";
+      upper[1].threshold = 5 + Math.floor(totalBlocks * 0.4); // scales with puzzle size
+    }
+  }
+  return blocks;
+}
+
+function generatePuzzle() {
+  const diff       = document.getElementById("gen-difficulty").value;
+  const triplets   = { easy: 3, medium: 4, hard: 5 }[diff] || 3;
+  const colorPool  = shuffleArray([...PALETTE_ORDER]).slice(0, triplets);
+  const MAX_TRIES  = 50;
+
+  setStatus("Generating…");
+
+  // Use setTimeout so the "Generating…" message renders before the heavy BFS
+  setTimeout(() => {
+    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+      const candidate = buildCandidate(colorPool, diff);
+
+      // Temporarily normalize so we can run the solver
+      candidate.forEach(b => {
+        b.w = b.w || 1; b.h = b.h || 1;
+        b.kind = b.kind || "normal";
+        if (b.threshold == null) b.threshold = 0;
+      });
+      const tempById = Object.fromEntries(candidate.map(b => [b.id, b]));
+      const testState = {
+        counters: candidate.map(b => [b.id, 0]).sort((a, b) => a[0] - b[0]),
+        slot: [],
+      };
+
+      const sol = solve(testState, tempById, 200000);
+      if (sol !== null) {
+        BLOCKS = candidate;
+        GRID_W = parseInt(document.getElementById("grid-w-inp").value) || 6;
+        GRID_H = parseInt(document.getElementById("grid-h-inp").value) || 5;
+        normalizeBlocks();
+        saveToStorage();
+        if (mode === "edit") drawEditor(); else { reset(); draw(); }
+        setStatus(
+          `✓ New ${diff} puzzle — ${candidate.length} blocks, ${triplets} colors, ` +
+          `${sol.length} moves to solve.  (attempt ${attempt + 1})`, "hint"
+        );
+        return;
+      }
+    }
+    setStatus(`Could not generate a solvable puzzle after ${MAX_TRIES} tries. Try a smaller grid or fewer colors.`, "error");
+  }, 20);
 }
 
 /* =========================================================================
