@@ -315,12 +315,167 @@ INITIAL_SLOT: Slot = ()
 
 
 # ---------------------------------------------------------------------------
+# Interactive play mode
+# ---------------------------------------------------------------------------
+
+def render_board(state: State, all_blocks: Dict[int, Block]):
+    """Print a snapshot of the current board state."""
+    counters = dict(state[0])
+    slot     = state[1]
+    remaining_ids = set(counters.keys())
+    access   = accessible_ids(remaining_ids, all_blocks)
+
+    print()
+    print("─" * 58)
+
+    # Slot
+    slot_str = "  ".join(f"\033[1m{c}\033[0m" for c in slot) if slot else "(empty)"
+    print(f"  SLOT [{len(slot)}/{MAX_SLOT}]:  {slot_str}")
+    print()
+
+    # Accessible (clickable / locked) blocks
+    clickable_rows = []
+    locked_rows    = []
+    for bid in sorted(access):
+        b   = all_blocks[bid]
+        cnt = counters[bid]
+        if b.kind == FROZEN and cnt < b.threshold:
+            locked_rows.append(
+                f"    #{bid:<3} {b.color:<10}  layer={b.layer}"
+                f"  pos=({b.x},{b.y})  FROZEN [{cnt}/{b.threshold} clicks]"
+            )
+        else:
+            tag = ""
+            if b.kind == BOMB:
+                remaining_clicks = b.threshold - cnt
+                tag = f"  \033[91mBOMB — {remaining_clicks} click(s) left!\033[0m"
+            elif b.kind == FROZEN:
+                tag = "  \033[96m[thawed — ready]\033[0m"
+            clickable_rows.append(
+                f"    #{bid:<3} {b.color:<10}  layer={b.layer}"
+                f"  pos=({b.x},{b.y}){tag}"
+            )
+
+    print("  CLICKABLE:")
+    if clickable_rows:
+        print("\n".join(clickable_rows))
+    else:
+        print("    (none)")
+
+    if locked_rows:
+        print()
+        print("  LOCKED (on top but not yet clickable):")
+        print("\n".join(locked_rows))
+
+    # Hidden blocks (buried under other layers)
+    buried = sorted(remaining_ids - access)
+    if buried:
+        print()
+        print(f"  BURIED: {', '.join(f'#{i}' for i in buried)}")
+
+    print("─" * 58)
+
+
+def play(blocks: List[Block], init_slot: Slot = ()):
+    """Interactive play loop."""
+    all_blocks = {b.id: b for b in blocks}
+    state: State = (make_initial_counters(blocks), init_slot)
+    history: List[State] = []   # for undo
+
+    print("\n╔══════════════════════════════════════╗")
+    print("║   Match-3 Interactive Solver          ║")
+    print("║   Commands:  <id>  hint  undo  quit   ║")
+    print("╚══════════════════════════════════════╝")
+
+    while True:
+        render_board(state, all_blocks)
+
+        counters = dict(state[0])
+        if not counters:
+            print("\n🎉  All blocks cleared — You Win!\n")
+            break
+
+        try:
+            raw = input("\n  > ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nQuit.")
+            break
+
+        if raw in ("q", "quit", "exit"):
+            print("Quit.")
+            break
+
+        elif raw == "undo":
+            if history:
+                state = history.pop()
+                print("  ↩  Undone.")
+            else:
+                print("  Nothing to undo.")
+
+        elif raw == "hint":
+            print("  Thinking …")
+            hint_solution = solve_from(
+                [all_blocks[bid] for bid in counters],
+                state[1]
+            )
+            if hint_solution is None:
+                print("  ✗  No solution found from here.")
+            else:
+                next_id = hint_solution[0]
+                nb = all_blocks[next_id]
+                print(f"  💡 Hint: click #{next_id} ({nb.color})"
+                      f"  — solution in {len(hint_solution)} more move(s).")
+
+        else:
+            try:
+                bid = int(raw)
+            except ValueError:
+                print("  Enter a block number, 'hint', 'undo', or 'quit'.")
+                continue
+
+            if bid not in counters:
+                print(f"  Block #{bid} is not on the board.")
+                continue
+
+            access = accessible_ids(set(counters.keys()), all_blocks)
+            if bid not in access:
+                print(f"  Block #{bid} is buried under other blocks.")
+                continue
+
+            b = all_blocks[bid]
+            if b.kind == FROZEN and counters[bid] < b.threshold:
+                need = b.threshold - counters[bid]
+                print(f"  Block #{bid} is still frozen. "
+                      f"Click {need} more other block(s) first.")
+                continue
+
+            # Apply the move
+            nxt = step(state, bid, all_blocks)
+            if nxt is None:
+                # Could be bomb explosion or slot overflow; work out which
+                slot_test = slot_add(state[1], b.color)
+                if slot_test is None:
+                    print("  💀  Slot overflow! That move fills the slot past 7.")
+                else:
+                    print("  💥  BOOM! A bomb exploded. Game over.")
+                    print("  Use 'undo' to go back.")
+            else:
+                history.append(state)
+                state = nxt
+                cleared = set(counters.keys()) - {cid for cid, _ in state[0]}
+                if len(cleared) > 1:
+                    # chains happen when slot clears mid-combo; just note it
+                    pass
+
+
+# ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Validate / replay INITIAL_SLOT through slot_add to handle pre-existing
-    # matches and overflow.
+    import sys
+
+    # Validate INITIAL_SLOT
     sim_slot: Slot = ()
     for color in INITIAL_SLOT:
         sim_slot = slot_add(sim_slot, color)
@@ -328,6 +483,9 @@ if __name__ == "__main__":
             print("ERROR: INITIAL_SLOT already overflows (> 7 tiles).")
             raise SystemExit(1)
 
-    print("Searching for solution …")
-    solution = solve_from(BLOCKS, sim_slot)
-    print_solution(solution, BLOCKS, sim_slot)
+    if "--solve" in sys.argv:
+        print("Searching for solution …")
+        solution = solve_from(BLOCKS, sim_slot)
+        print_solution(solution, BLOCKS, sim_slot)
+    else:
+        play(BLOCKS, sim_slot)
