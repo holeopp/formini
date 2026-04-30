@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Match-3 Tile Solver</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #34495e; color: #ecf0f1;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { margin: 0 0 10px; font-size: 22px; }
+  #slot {
+    background: #2c3e50; border-radius: 8px;
+    padding: 10px 14px; margin: 10px 0;
+    display: flex; align-items: center; gap: 8px;
+    min-height: 60px;
+  }
+  #slot .label { font-weight: bold; margin-right: 10px; font-size: 13px; }
+  #slot .cell {
+    width: 42px; height: 42px;
+    border: 1px dashed #7f8c8d; border-radius: 6px;
+    display: inline-block;
+  }
+  #slot .cell.filled {
+    border: 2px solid #ecf0f1;
+    box-shadow: 0 2px 4px rgba(0,0,0,.4);
+  }
+  #board-wrap {
+    background: #7f8c8d; border-radius: 10px;
+    padding: 30px; position: relative;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    margin: 10px 0;
+  }
+  #board { position: relative; }
+  .block {
+    position: absolute;
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: white; font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,.3);
+    transition: transform 0.08s ease;
+    user-select: none;
+    border: 3px solid transparent;
+  }
+  .block.top { border-color: #ecf0f1; }
+  .block.top:hover { transform: translateY(-3px); }
+  .block.locked { cursor: not-allowed; }
+  .block .id { font-size: 11px; opacity: .85; }
+  .block .name { font-size: 12px; }
+  .block .badge {
+    font-size: 10px; font-weight: bold;
+    margin-top: 3px;
+    background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 4px;
+  }
+  .block.frozen-locked::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: rgba(174,214,241,.55);
+    border-radius: 5px;
+  }
+  .block .badge.bomb-warning { background: #e74c3c; color: white; }
+  .controls {
+    display: flex; gap: 8px; margin: 14px 0;
+  }
+  button {
+    border: none; border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px; font-weight: bold;
+    color: white; cursor: pointer;
+    transition: filter .1s;
+  }
+  button:hover { filter: brightness(1.1); }
+  .btn-hint    { background: #f39c12; }
+  .btn-undo    { background: #3498db; }
+  .btn-restart { background: #9b59b6; }
+  #status {
+    min-height: 24px; padding: 8px 14px;
+    font-size: 14px;
+    background: rgba(0,0,0,.2); border-radius: 6px;
+    text-align: center;
+    max-width: 600px;
+  }
+  #status.win    { color: #2ecc71; font-weight: bold; }
+  #status.error  { color: #e74c3c; }
+  #status.hint   { color: #f1c40f; }
+  #status.info   { color: #85c1e9; }
+</style>
+</head>
+
+<body>
+
+<h1>Match-3 Tile Solver</h1>
+
+<div id="slot">
+  <span class="label" id="slot-label">SLOT 0/7</span>
+</div>
+
+<div id="board-wrap"><div id="board"></div></div>
+
+<div class="controls">
+  <button class="btn-hint"    onclick="hint()">Hint</button>
+  <button class="btn-undo"    onclick="undo()">Undo</button>
+  <button class="btn-restart" onclick="restart()">Restart</button>
+</div>
+
+<div id="status">Click a block to play.</div>
+
+<script>
+/* =========================================================================
+   PUZZLE DEFINITION — edit this list to encode your real stage.
+
+   Each block:  {id, color, layer, x, y, w?, h?, kind?, threshold?}
+     kind: "normal" (default), "frozen", or "bomb"
+     threshold: clicks needed (frozen → thawed, default 3)
+                or before explosion (bomb, default 5)
+   ========================================================================= */
+
+const BLOCKS = [
+  // layer 0 — bottom
+  {id:1, color:"red",    layer:0, x:0, y:0},
+  {id:2, color:"red",    layer:0, x:1, y:0},
+  {id:3, color:"blue",   layer:0, x:2, y:0},
+  {id:4, color:"blue",   layer:0, x:0, y:1},
+  {id:5, color:"yellow", layer:0, x:1, y:1},
+  {id:6, color:"yellow", layer:0, x:2, y:1},
+
+  // layer 1 — covers some bottom blocks
+  {id:7, color:"red",    layer:1, x:0, y:0},
+  {id:8, color:"blue",   layer:1, x:1, y:0},
+  {id:9, color:"yellow", layer:1, x:2, y:0},
+
+  // layer 2 — frozen + bomb specials
+  {id:10, color:"blue",   layer:2, x:1, y:0, kind:"frozen", threshold:3},
+  {id:11, color:"yellow", layer:2, x:2, y:0, kind:"bomb",   threshold:5},
+];
+
+const INITIAL_SLOT = [];   // mid-game? e.g. ["red", "blue"]
+
+/* ========================================================================= */
+
+const MAX_SLOT = 7;
+const BLOCK_SIZE = 80;
+const LAYER_OFFSET = 7;
+
+const COLORS = {
+  red:"#e74c3c", blue:"#3498db", yellow:"#f1c40f", green:"#2ecc71",
+  purple:"#9b59b6", orange:"#e67e22", pink:"#fd79a8", cyan:"#1abc9c",
+  white:"#ecf0f1", black:"#2c3e50", brown:"#8b6f47", gray:"#95a5a6",
+};
+const toHex = c => COLORS[c.toLowerCase()] || "#bdc3c7";
+
+// Normalize blocks
+BLOCKS.forEach(b => {
+  b.w = b.w || 1; b.h = b.h || 1;
+  b.kind = b.kind || "normal";
+  if (b.threshold == null) {
+    b.threshold = b.kind === "frozen" ? 3 : b.kind === "bomb" ? 5 : 0;
+  }
+});
+
+// =========================================================================
+// Game logic (pure functions)
+// =========================================================================
+
+function overlaps(a, b) {
+  return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
+           a.y + a.h <= b.y || b.y + b.h <= a.y);
+}
+
+function accessibleIds(remainingIds, byId) {
+  const blocks = remainingIds.map(i => byId[i]);
+  const out = new Set();
+  for (const b of blocks) {
+    let blocked = false;
+    for (const o of blocks) {
+      if (o.layer > b.layer && overlaps(b, o)) { blocked = true; break; }
+    }
+    if (!blocked) out.add(b.id);
+  }
+  return out;
+}
+
+function slotAdd(slot, color) {
+  const lst = slot.slice();
+  let pos = lst.length;
+  for (let i = lst.length - 1; i >= 0; i--) {
+    if (lst[i] === color) { pos = i + 1; break; }
+  }
+  lst.splice(pos, 0, color);
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < lst.length - 2; i++) {
+      if (lst[i] === lst[i+1] && lst[i+1] === lst[i+2]) {
+        lst.splice(i, 3); changed = true; break;
+      }
+    }
+  }
+  if (lst.length > MAX_SLOT) return null;
+  return lst;
+}
+
+function isClickable(block, counter) {
+  if (block.kind === "frozen") return counter >= block.threshold;
+  return true;   // normal & bomb (always defusable)
+}
+
+function step(state, clickedId, byId) {
+  const counters = new Map(state.counters);
+  if (!counters.has(clickedId)) return null;
+
+  const remIds = [...counters.keys()];
+  const access = accessibleIds(remIds, byId);
+  if (!access.has(clickedId)) return null;
+
+  const clicked = byId[clickedId];
+  if (!isClickable(clicked, counters.get(clickedId))) return null;
+
+  const newSlot = slotAdd(state.slot, clicked.color);
+  if (newSlot === null) return null;
+
+  const newCounters = new Map();
+  for (const [bid, cnt] of counters) {
+    if (bid === clickedId) continue;
+    const b = byId[bid];
+    if (access.has(bid) && (b.kind === "frozen" || b.kind === "bomb")) {
+      const nc = cnt + 1;
+      if (b.kind === "bomb" && nc >= b.threshold) return null; // explode
+      newCounters.set(bid, b.kind === "frozen" ? Math.min(nc, b.threshold) : nc);
+    } else {
+      newCounters.set(bid, cnt);
+    }
+  }
+  return { counters: [...newCounters].sort((a,b)=>a[0]-b[0]), slot: newSlot };
+}
+
+function stateKey(s) {
+  return s.counters.map(([i,c])=>i+":"+c).join(",") + "|" + s.slot.join(",");
+}
+
+function solve(state, byId, maxStates = 200000) {
+  // BFS with state-cap so the browser doesn't hang on huge searches.
+  const start = { counters: state.counters.slice(), slot: state.slot.slice() };
+  const queue = [{ s: start, path: [] }];
+  const visited = new Set([stateKey(start)]);
+
+  while (queue.length) {
+    const { s, path } = queue.shift();
+    if (s.counters.length === 0) return path;
+    if (visited.size > maxStates) return null;
+
+    const remIds = s.counters.map(([i])=>i);
+    const access = accessibleIds(remIds, byId);
+    const cmap = new Map(s.counters);
+
+    for (const bid of access) {
+      const b = byId[bid];
+      if (!isClickable(b, cmap.get(bid))) continue;
+      const nxt = step(s, bid, byId);
+      if (!nxt) continue;
+      const k = stateKey(nxt);
+      if (visited.has(k)) continue;
+      visited.add(k);
+      queue.push({ s: nxt, path: path.concat(bid) });
+    }
+  }
+  return null;
+}
+
+// =========================================================================
+// UI
+// =========================================================================
+
+const byId = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
+let state, history;
+
+function setStatus(text, klass="") {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  el.className = klass;
+}
+
+function reset() {
+  state = {
+    counters: BLOCKS.map(b => [b.id, 0]).sort((a,b)=>a[0]-b[0]),
+    slot: INITIAL_SLOT.slice(),
+  };
+  history = [];
+  draw();
+}
+
+function draw() {
+  // Slot
+  const slotEl = document.getElementById("slot");
+  slotEl.querySelectorAll(".cell").forEach(n => n.remove());
+  document.getElementById("slot-label").textContent =
+    `SLOT ${state.slot.length}/${MAX_SLOT}`;
+  for (let i = 0; i < MAX_SLOT; i++) {
+    const cell = document.createElement("span");
+    cell.className = "cell";
+    if (i < state.slot.length) {
+      cell.classList.add("filled");
+      cell.style.background = toHex(state.slot[i]);
+    }
+    slotEl.appendChild(cell);
+  }
+
+  // Board
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const remIds = state.counters.map(([i])=>i);
+  if (remIds.length === 0) {
+    setStatus("🎉  You cleared the board!", "win");
+    board.style.width = "300px"; board.style.height = "100px";
+    board.innerHTML = '<div style="font-size:36px;text-align:center;padding:20px;color:#2ecc71;font-weight:bold;">YOU WIN!</div>';
+    return;
+  }
+
+  const access = accessibleIds(remIds, byId);
+  const cmap = new Map(state.counters);
+
+  let maxX = 0, maxY = 0, maxL = 0;
+  for (const id of remIds) {
+    const b = byId[id];
+    maxX = Math.max(maxX, b.x + b.w);
+    maxY = Math.max(maxY, b.y + b.h);
+    maxL = Math.max(maxL, b.layer);
+  }
+  board.style.width  = (maxX * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+  board.style.height = (maxY * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+
+  // Sort by layer ascending (so high layers appear on top via z-index too)
+  const sorted = remIds.slice().sort((a,b) => byId[a].layer - byId[b].layer);
+  for (const id of sorted) {
+    const b = byId[id];
+    const cnt = cmap.get(id);
+    const off = b.layer * LAYER_OFFSET;
+
+    const div = document.createElement("div");
+    div.className = "block";
+    div.style.background = toHex(b.color);
+    div.style.left   = (b.x * BLOCK_SIZE + off) + "px";
+    div.style.top    = (b.y * BLOCK_SIZE + off) + "px";
+    div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
+    div.style.height = (b.h * BLOCK_SIZE - 4) + "px";
+    div.style.zIndex = b.layer;
+
+    const isFrozenLocked = b.kind === "frozen" && cnt < b.threshold;
+    const isTop = access.has(id);
+
+    if (isTop && !isFrozenLocked) div.classList.add("top");
+    if (isFrozenLocked) div.classList.add("locked", "frozen-locked");
+
+    div.innerHTML =
+      `<div class="id">#${b.id}</div>` +
+      `<div class="name">${b.color}</div>` +
+      (isFrozenLocked ?
+        `<div class="badge">FROZEN ${cnt}/${b.threshold}</div>` :
+        b.kind === "frozen" && isTop ?
+          `<div class="badge">THAWED</div>` :
+        b.kind === "bomb" && isTop ?
+          `<div class="badge ${b.threshold-cnt<=2 ? 'bomb-warning':''}">BOMB ${b.threshold-cnt}</div>` :
+          ""
+      );
+
+    div.onclick = () => clickBlock(id);
+    board.appendChild(div);
+  }
+}
+
+function clickBlock(bid) {
+  const cmap = new Map(state.counters);
+  if (!cmap.has(bid)) return;
+
+  const access = accessibleIds([...cmap.keys()], byId);
+  if (!access.has(bid)) {
+    setStatus(`Block #${bid} is buried — clear what's on top first.`, "info");
+    return;
+  }
+  const b = byId[bid];
+  if (b.kind === "frozen" && cmap.get(bid) < b.threshold) {
+    const need = b.threshold - cmap.get(bid);
+    setStatus(`#${bid} is still frozen — click ${need} other block(s) first.`, "info");
+    return;
+  }
+
+  const nxt = step(state, bid, byId);
+  if (!nxt) {
+    if (slotAdd(state.slot, b.color) === null) {
+      setStatus("💀  Slot overflow! Press Undo or Restart.", "error");
+    } else {
+      setStatus("💥  BOOM!  A bomb exploded. Press Undo or Restart.", "error");
+    }
+    return;
+  }
+  history.push(state);
+  state = nxt;
+  setStatus(`Clicked #${bid} (${b.color}).`);
+  draw();
+}
+
+function hint() {
+  if (state.counters.length === 0) return;
+  setStatus("Thinking...");
+  setTimeout(() => {
+    const sol = solve(state, byId);
+    if (!sol) {
+      setStatus("No solution found from this position. Try Undo.", "error");
+    } else if (sol.length === 0) {
+      setStatus("Already won!", "win");
+    } else {
+      const nb = byId[sol[0]];
+      setStatus(`💡 Click #${sol[0]} (${nb.color}) — ${sol.length} moves to win.`, "hint");
+    }
+  }, 30);
+}
+
+function undo() {
+  if (history.length === 0) {
+    setStatus("Nothing to undo.", "info");
+    return;
+  }
+  state = history.pop();
+  draw();
+  setStatus("Undone.");
+}
+
+function restart() {
+  reset();
+  setStatus("Restarted.");
+}
+
+reset();
+</script>
+</body>
+</html>
