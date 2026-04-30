@@ -2,15 +2,22 @@
 """
 Match-3 Tile Puzzle Solver (3 Tiles / similar games)
 
-Rules:
-- Blocks sit on a layered board. A block is clickable only when no
+Core rules:
+- Blocks sit on a layered board. A block is "accessible" only when no
   higher-layer block overlaps it.
-- Clicking a block moves it into a 7-slot waiting area.
-- New blocks are inserted NEXT TO their matching color group in the slot
-  (not necessarily at the end).
-- When 3 identical colors are consecutive in the slot they auto-clear.
-- If the slot reaches 7 without clearing, it's game over.
+- Clicking a block moves its color into a 7-slot waiting area.
+- New colors are inserted NEXT TO their matching color group in the slot.
+- 3 identical consecutive colors auto-clear (chains allowed).
+- If the slot ever exceeds 7 tiles → game over.
 - Goal: clear every block from the board.
+
+Special block kinds:
+- "frozen": must be on the top layer AND observe `threshold` clicks of OTHER
+  blocks while it is on top before it becomes clickable itself.
+- "bomb":   when on the top layer it has a countdown.  Each click of any
+  OTHER block while the bomb is on top counts down; if it reaches the
+  bomb's `threshold` before you defuse it (click it), the bomb explodes
+  and the game ends.
 
 How to use:
   1. Edit the PUZZLE section at the bottom with your actual board layout.
@@ -18,65 +25,77 @@ How to use:
 """
 
 from collections import deque
-from typing import FrozenSet, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 # ---------------------------------------------------------------------------
-# Core data
+# Block definition
 # ---------------------------------------------------------------------------
+
+NORMAL = "normal"
+FROZEN = "frozen"
+BOMB   = "bomb"
+
+DEFAULT_FROZEN_THRESHOLD = 3   # 3 other clicks while on top → thawed
+DEFAULT_BOMB_THRESHOLD   = 5   # 5 other clicks while on top → kaboom
+
 
 class Block:
-    __slots__ = ("id", "color", "layer", "x", "y", "w", "h")
+    __slots__ = ("id", "color", "layer", "x", "y", "w", "h", "kind", "threshold")
 
     def __init__(self, id: int, color: str, layer: int,
-                 x: float, y: float, w: float = 1.0, h: float = 1.0):
+                 x: float, y: float, w: float = 1.0, h: float = 1.0,
+                 kind: str = NORMAL, threshold: Optional[int] = None):
         self.id    = id
         self.color = color
         self.layer = layer
         self.x, self.y = x, y
         self.w, self.h = w, h
+        self.kind  = kind
+        if threshold is None:
+            threshold = (DEFAULT_FROZEN_THRESHOLD if kind == FROZEN
+                         else DEFAULT_BOMB_THRESHOLD if kind == BOMB
+                         else 0)
+        self.threshold = threshold
 
     def __repr__(self):
-        return f"Block({self.id}, {self.color!r}, layer={self.layer}, pos=({self.x},{self.y}))"
-
-    # Blocks need to be hashable to live in frozensets
-    def __hash__(self):  return self.id
-    def __eq__(self, other): return isinstance(other, Block) and self.id == other.id
+        tag = "" if self.kind == NORMAL else f" {self.kind}({self.threshold})"
+        return f"Block({self.id}, {self.color!r}, layer={self.layer}, pos=({self.x},{self.y}){tag})"
 
 
 def overlaps(a: Block, b: Block) -> bool:
-    """True when two blocks share any area on the grid."""
     return not (
         a.x + a.w <= b.x or b.x + b.w <= a.x or
         a.y + a.h <= b.y or b.y + b.h <= a.y
     )
 
 
-def is_accessible(block: Block, remaining: FrozenSet[Block]) -> bool:
-    """A block is accessible when nothing with a higher layer overlaps it."""
-    for other in remaining:
-        if other.layer > block.layer and overlaps(block, other):
-            return False
-    return True
+def accessible_ids(remaining_ids, all_blocks: Dict[int, Block]) -> set:
+    """Return the subset of remaining_ids whose blocks are on top."""
+    blocks = [all_blocks[i] for i in remaining_ids]
+    out = set()
+    for b in blocks:
+        covered = False
+        for o in blocks:
+            if o.layer > b.layer and overlaps(b, o):
+                covered = True
+                break
+        if not covered:
+            out.add(b.id)
+    return out
 
 
 # ---------------------------------------------------------------------------
 # Slot mechanics
 # ---------------------------------------------------------------------------
 
-Slot = Tuple[str, ...]   # ordered sequence of colors in the waiting area
+Slot = Tuple[str, ...]
 MAX_SLOT = 7
 
 
 def slot_add(slot: Slot, color: str) -> Optional[Slot]:
-    """
-    Insert *color* into the slot next to its existing group (after the last
-    matching tile), then remove any run of 3+ identical consecutive colors.
-    Returns None when the slot would exceed MAX_SLOT (game over for that path).
-    """
+    """Insert next to matching group; collapse 3-runs; None on overflow."""
     lst = list(slot)
-
-    # Find insert position: right after the last tile of the same color.
     insert_pos = len(lst)
     for i in range(len(lst) - 1, -1, -1):
         if lst[i] == color:
@@ -84,7 +103,6 @@ def slot_add(slot: Slot, color: str) -> Optional[Slot]:
             break
     lst.insert(insert_pos, color)
 
-    # Collapse runs of 3+ (may chain after each collapse)
     changed = True
     while changed:
         changed = False
@@ -95,99 +113,161 @@ def slot_add(slot: Slot, color: str) -> Optional[Slot]:
                 break
 
     if len(lst) > MAX_SLOT:
-        return None       # slot overflow → dead end
+        return None
     return tuple(lst)
 
 
 # ---------------------------------------------------------------------------
-# Solver  (BFS over game states)
+# Solver
 # ---------------------------------------------------------------------------
+#
+# A state captures everything that influences future legal moves:
+#   - which blocks remain on the board
+#   - for each remaining block, its "counter" (clicks observed while on top)
+#     • normal: counter unused, kept at 0
+#     • frozen: counter ∈ [0, threshold];  >= threshold  ⇒ thawed
+#     • bomb:   counter ∈ [0, threshold-1];  reaching threshold ⇒ explosion
+#   - the current slot contents
+#
+# We encode the per-block state as a tuple sorted by id, so it's hashable.
+#
+# Counters: Tuple[Tuple[int, int], ...]   (id, counter)
+# State:    (Counters, Slot)
 
-# A state is fully described by what's still on the board + the slot contents.
-State = Tuple[FrozenSet[Block], Slot]
+Counters = Tuple[Tuple[int, int], ...]
+State    = Tuple[Counters, Slot]
 
 
-def solve(blocks: List[Block]) -> Optional[List[int]]:
+def make_initial_counters(blocks: List[Block]) -> Counters:
+    return tuple(sorted((b.id, 0) for b in blocks))
+
+
+def is_clickable(block: Block, counter: int) -> bool:
+    """Given the block is accessible, can the player click it right now?"""
+    if block.kind == NORMAL:   return True
+    if block.kind == FROZEN:   return counter >= block.threshold
+    if block.kind == BOMB:     return True   # always defusable
+    return False
+
+
+def step(state: State, clicked_id: int,
+         all_blocks: Dict[int, Block]) -> Optional[State]:
     """
-    BFS search for a click sequence that clears all blocks.
-    Returns a list of block IDs in click order, or None if unsolvable.
-
-    For large puzzles BFS can be slow.  See the DFS option below if needed.
+    Apply one click to *state*.  Returns the next state, or None if the
+    move is illegal / leads to a dead end (slot overflow, bomb explosion).
     """
-    start: State = (frozenset(blocks), ())
+    counters_tup, slot = state
+    counters = dict(counters_tup)
+
+    if clicked_id not in counters:
+        return None
+
+    accessible_now = accessible_ids(counters.keys(), all_blocks)
+    if clicked_id not in accessible_now:
+        return None
+
+    clicked = all_blocks[clicked_id]
+    if not is_clickable(clicked, counters[clicked_id]):
+        return None
+
+    # 1. Update slot
+    new_slot = slot_add(slot, clicked.color)
+    if new_slot is None:
+        return None
+
+    # 2. Increment counters of OTHER on-top frozen/bomb blocks.
+    #    (They were on top *during* this click; newly-exposed ones don't count.)
+    new_counters: Dict[int, int] = {}
+    for bid, cnt in counters.items():
+        if bid == clicked_id:
+            continue
+        b = all_blocks[bid]
+        if bid in accessible_now and b.kind in (FROZEN, BOMB):
+            new_cnt = cnt + 1
+            if b.kind == BOMB and new_cnt >= b.threshold:
+                return None                    # 💥 explosion → dead end
+            if b.kind == FROZEN:
+                new_cnt = min(new_cnt, b.threshold)   # cap; no further work
+            new_counters[bid] = new_cnt
+        else:
+            new_counters[bid] = cnt
+
+    return (tuple(sorted(new_counters.items())), new_slot)
+
+
+def solve_from(blocks: List[Block], init_slot: Slot = ()) -> Optional[List[int]]:
+    """BFS for the shortest click sequence that clears the board."""
+    all_blocks = {b.id: b for b in blocks}
+    start: State = (make_initial_counters(blocks), init_slot)
+
     queue: deque = deque([(start, [])])
     visited = {start}
 
     while queue:
-        (remaining, slot), path = queue.popleft()
+        state, path = queue.popleft()
+        counters_tup, _ = state
 
-        if not remaining:
-            return path                         # ✓ all blocks cleared
+        if not counters_tup:
+            return path                                # ✓ board cleared
 
-        accessible = [b for b in remaining if is_accessible(b, remaining)]
+        remaining_ids = {bid for bid, _ in counters_tup}
+        access_now = accessible_ids(remaining_ids, all_blocks)
+        counters_dict = dict(counters_tup)
 
-        for block in accessible:
-            new_slot = slot_add(slot, block.color)
-            if new_slot is None:
-                continue                        # this move overflows the slot
-
-            new_remaining = remaining - {block}
-            new_state: State = (new_remaining, new_slot)
-
-            if new_state not in visited:
-                visited.add(new_state)
-                queue.append((new_state, path + [block.id]))
-
-    return None                                 # exhausted search, no solution
-
-
-# ---------------------------------------------------------------------------
-# DFS alternative — faster for deep solutions, less memory usage
-# ---------------------------------------------------------------------------
-
-def solve_dfs(blocks: List[Block]) -> Optional[List[int]]:
-    """DFS with a visited-state cache.  Often faster than BFS on large boards."""
-    visited: set = set()
-
-    def dfs(remaining: FrozenSet[Block], slot: Slot, path: List[int]):
-        if not remaining:
-            return path
-
-        state = (remaining, slot)
-        if state in visited:
-            return None
-        visited.add(state)
-
-        accessible = [b for b in remaining if is_accessible(b, remaining)]
-        for block in accessible:
-            new_slot = slot_add(slot, block.color)
-            if new_slot is None:
+        for bid in access_now:
+            block = all_blocks[bid]
+            if not is_clickable(block, counters_dict[bid]):
                 continue
-            result = dfs(remaining - {block}, new_slot, path + [block.id])
-            if result is not None:
-                return result
-        return None
+            nxt = step(state, bid, all_blocks)
+            if nxt is None or nxt in visited:
+                continue
+            visited.add(nxt)
+            queue.append((nxt, path + [bid]))
 
-    return dfs(frozenset(blocks), (), [])
+    return None
 
 
 # ---------------------------------------------------------------------------
 # Pretty-print helper
 # ---------------------------------------------------------------------------
 
-def print_solution(solution: List[int], block_map: dict):
+def print_solution(solution: Optional[List[int]],
+                   blocks: List[Block], init_slot: Slot = ()):
     if solution is None:
-        print("No solution found (the puzzle may be unsolvable from this state).")
+        print("No solution found (puzzle may be unsolvable from this state).")
         return
 
+    all_blocks = {b.id: b for b in blocks}
+    state: State = (make_initial_counters(blocks), init_slot)
+
     print(f"\nSolution found — {len(solution)} moves:\n")
-    slot: Slot = ()
-    for step, bid in enumerate(solution, 1):
-        b = block_map[bid]
-        slot = slot_add(slot, b.color)
-        slot_str = " | ".join(slot) if slot else "(empty)"
-        print(f"  Step {step:>3}: click block #{bid:>3}  color={b.color:<10}"
-              f"  layer={b.layer}  pos=({b.x},{b.y})   slot → [{slot_str}]")
+    for step_idx, bid in enumerate(solution, 1):
+        b = all_blocks[bid]
+        prev_counter = dict(state[0]).get(bid, 0)
+        state = step(state, bid, all_blocks)
+        slot_str = " | ".join(state[1]) if state[1] else "(empty)"
+
+        kind_tag = ""
+        if b.kind == FROZEN:
+            kind_tag = f"  [FROZEN, thawed at {prev_counter}/{b.threshold}]"
+        elif b.kind == BOMB:
+            kind_tag = f"  [BOMB defused at {prev_counter}/{b.threshold}]"
+
+        print(f"  Step {step_idx:>3}: click #{bid:>3}  {b.color:<10}"
+              f"  layer={b.layer}  pos=({b.x},{b.y}){kind_tag}"
+              f"\n           slot → [{slot_str}]")
+
+        # Show frozen progress and bomb timers for remaining blocks
+        warn = []
+        for cbid, cnt in state[0]:
+            cb = all_blocks[cbid]
+            if cb.kind == BOMB and cnt > 0:
+                warn.append(f"#{cbid} bomb {cnt}/{cb.threshold}")
+            elif cb.kind == FROZEN and 0 < cnt < cb.threshold:
+                warn.append(f"#{cbid} frozen {cnt}/{cb.threshold}")
+        if warn:
+            print(f"           status: {', '.join(warn)}")
+
     print("\nAll blocks cleared! ✓")
 
 
@@ -196,22 +276,21 @@ def print_solution(solution: List[int], block_map: dict):
 #  PUZZLE DEFINITION — edit this section to match your actual stage
 # ══════════════════════════════════════════════════════════════════════════
 #
-# Block(id, color, layer, x, y, width=1.0, height=1.0)
+# Block(id, color, layer, x, y, w=1, h=1, kind="normal", threshold=None)
 #
-#  • id     : unique integer for each block
-#  • color  : any string label ("red", "blue", "star", "acorn", …)
-#  • layer  : 0 = bottom; higher numbers sit on top
-#  • x, y   : top-left grid coordinate of the block
-#  • w, h   : size of the block in grid units (default 1×1)
+#   kind:
+#     "normal"  default
+#     "frozen"  needs `threshold` clicks of OTHER blocks while exposed
+#               before it becomes clickable (default threshold = 3)
+#     "bomb"    explodes after `threshold` clicks of OTHER blocks while
+#               exposed if you don't click it in time
+#               (default threshold = 5)
 #
-# A block at (x=1, y=0, layer=1) covers any layer-0 block whose area
-# overlaps (1,0)→(2,1).
-#
-# Example: a simple 9-block puzzle
+# Example: 9 normal blocks + 1 frozen + 1 bomb
 # ---------------------------------------------------------------------------
 
 BLOCKS = [
-    # layer 0 — bottom row
+    # layer 0 — bottom
     Block( 1, "red",    0,  0, 0),
     Block( 2, "red",    0,  1, 0),
     Block( 3, "blue",   0,  2, 0),
@@ -219,57 +298,36 @@ BLOCKS = [
     Block( 5, "yellow", 0,  1, 1),
     Block( 6, "yellow", 0,  2, 1),
 
-    # layer 1 — on top, covering some layer-0 blocks
-    Block( 7, "red",    1,  0, 0),   # covers block 1
-    Block( 8, "blue",   1,  1, 0),   # covers blocks 2 & 5
-    Block( 9, "yellow", 1,  2, 0),   # covers blocks 3 & 6
+    # layer 1 — covers some layer-0 blocks
+    Block( 7, "red",    1,  0, 0),   # covers #1
+    Block( 8, "blue",   1,  1, 0),   # covers #2 and #5
+    Block( 9, "yellow", 1,  2, 0),   # covers #3 and #6
+
+    # layer 2 — sits on top of #8 as a frozen blue block
+    Block(10, "blue",   2,  1, 0, kind=FROZEN, threshold=3),
+
+    # layer 2 — sits on top of #9 as a bomb (yellow); 5 clicks to defuse
+    Block(11, "yellow", 2,  2, 0, kind=BOMB,   threshold=5),
 ]
 
-# Slot may already have tiles if you're mid-game:
-INITIAL_SLOT: Slot = ()   # e.g. ("red", "blue") if two tiles are already there
+# Mid-game initial slot (e.g. ("red", "blue")). Use () if starting fresh.
+INITIAL_SLOT: Slot = ()
+
 
 # ---------------------------------------------------------------------------
 # Run
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    block_map = {b.id: b for b in BLOCKS}
+    # Validate / replay INITIAL_SLOT through slot_add to handle pre-existing
+    # matches and overflow.
+    sim_slot: Slot = ()
+    for color in INITIAL_SLOT:
+        sim_slot = slot_add(sim_slot, color)
+        if sim_slot is None:
+            print("ERROR: INITIAL_SLOT already overflows (> 7 tiles).")
+            raise SystemExit(1)
 
     print("Searching for solution …")
-
-    # Inject initial slot tiles as phantom "already-clicked" blocks
-    # so the solver starts from the correct slot state.
-    if INITIAL_SLOT:
-        # We simulate the initial slot by running it through slot_add
-        sim_slot: Slot = ()
-        for color in INITIAL_SLOT:
-            sim_slot = slot_add(sim_slot, color)
-            if sim_slot is None:
-                print("ERROR: INITIAL_SLOT already overflows (> 7 tiles).")
-                exit(1)
-    else:
-        sim_slot = ()
-
-    # Patch the solver to accept an initial slot
-    def solve_from(blocks, init_slot):
-        start: State = (frozenset(blocks), init_slot)
-        queue: deque = deque([(start, [])])
-        visited = {start}
-        while queue:
-            (remaining, slot), path = queue.popleft()
-            if not remaining:
-                return path
-            accessible = [b for b in remaining if is_accessible(b, remaining)]
-            for block in accessible:
-                new_slot = slot_add(slot, block.color)
-                if new_slot is None:
-                    continue
-                new_remaining = remaining - {block}
-                new_state: State = (new_remaining, new_slot)
-                if new_state not in visited:
-                    visited.add(new_state)
-                    queue.append((new_state, path + [block.id]))
-        return None
-
     solution = solve_from(BLOCKS, sim_slot)
-    print_solution(solution, block_map)
+    print_solution(solution, BLOCKS, sim_slot)
