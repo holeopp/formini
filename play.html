@@ -280,12 +280,12 @@ const toHex = c => COLORS[c.toLowerCase()] || "#bdc3c7";
 
 // ============== Mutable level + game state ==============
 
+let byId, state, history;   // declared first — used inside normalizeBlocks()
+let mode = "play";
+let edit = { color: "red", kind: "normal", layer: 0, threshold: 3, eraser: false };
+
 let BLOCKS = loadFromStorage() || JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
 normalizeBlocks();
-
-let mode = "play";   // "play" or "edit"
-let edit = { color: "red", kind: "normal", layer: 0, threshold: 3, eraser: false };
-let byId, state, history;
 
 function normalizeBlocks() {
   BLOCKS.forEach(b => {
