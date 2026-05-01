@@ -22,7 +22,11 @@
     border: none; cursor: pointer;
     font-size: 14px; font-weight: bold;
   }
-  .mode-tabs button.active { background: #1abc9c; color: white; }
+  .mode-tabs button.active {
+    background: #1abc9c; color: white;
+  }
+
+  /* ---- editor toolbar ---- */
   #editor-bar {
     background: #2c3e50; padding: 12px 16px; border-radius: 8px;
     margin-bottom: 12px; display: none;
@@ -33,8 +37,10 @@
   #editor-bar > div { display: flex; align-items: center; gap: 6px; }
   #editor-bar label { font-size: 12px; color: #bdc3c7; }
   .swatch {
-    width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
-    border: 3px solid transparent; transition: transform .08s;
+    width: 28px; height: 28px;
+    border-radius: 6px; cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform .08s;
   }
   .swatch:hover { transform: scale(1.1); }
   .swatch.selected { border-color: #ecf0f1; }
@@ -52,57 +58,79 @@
   .ed-btn.success { background: #27ae60; }
   .ed-btn.eraser { background: #f39c12; }
   .ed-btn.eraser.active { background: #e67e22; outline: 2px solid white; }
+
+  /* ---- slot ---- */
   #slot {
     background: #2c3e50; border-radius: 8px;
     padding: 10px 14px; margin: 10px 0;
-    display: flex; align-items: center; gap: 8px; min-height: 60px;
+    display: flex; align-items: center; gap: 8px;
+    min-height: 60px;
   }
   #slot .label { font-weight: bold; margin-right: 10px; font-size: 13px; }
   #slot .cell {
     width: 42px; height: 42px;
-    border: 1px dashed #7f8c8d; border-radius: 6px; display: inline-block;
+    border: 1px dashed #7f8c8d; border-radius: 6px;
+    display: inline-block;
   }
-  #slot .cell.filled { border: 2px solid #ecf0f1; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+  #slot .cell.filled {
+    border: 2px solid #ecf0f1;
+    box-shadow: 0 2px 4px rgba(0,0,0,.4);
+  }
+
+  /* ---- board ---- */
   #board-wrap {
     background: #7f8c8d; border-radius: 10px;
     padding: 30px; position: relative;
-    box-shadow: 0 6px 20px rgba(0,0,0,.4); margin: 10px 0;
+    box-shadow: 0 6px 20px rgba(0,0,0,.4);
+    margin: 10px 0;
   }
   #board { position: relative; }
   .grid-cell {
     position: absolute;
-    border: 1px dashed rgba(255,255,255,0.3);
-    border-radius: 4px; background: rgba(0,0,0,0.05); cursor: pointer;
+    border: 1px dashed rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: rgba(0,0,0,0.05);
+    cursor: pointer;
   }
-  .grid-cell:hover { background: rgba(255,255,255,0.2); }
+  .grid-cell:hover { background: rgba(255,255,255,0.15); }
   .block {
-    position: absolute; border-radius: 8px;
+    position: absolute;
+    border-radius: 8px;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
-    color: white; font-weight: bold; cursor: pointer;
+    color: white; font-weight: bold;
+    cursor: pointer;
     box-shadow: 0 4px 0 rgba(0,0,0,.3);
     transition: transform 0.08s ease;
-    user-select: none; border: 3px solid transparent;
+    user-select: none;
+    border: 3px solid transparent;
   }
   .block.top { border-color: #ecf0f1; }
   .block.top:hover { transform: translateY(-3px); }
   .block.locked { cursor: not-allowed; }
-  .block.editable { cursor: pointer !important; opacity: 0.82; }
+  .block.editable { cursor: pointer !important; }
   .block .id { font-size: 11px; opacity: .85; }
   .block .name { font-size: 12px; }
   .block .badge {
-    font-size: 10px; font-weight: bold; margin-top: 3px;
+    font-size: 10px; font-weight: bold;
+    margin-top: 3px;
     background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 4px;
   }
   .block.frozen-locked::after {
-    content: ""; position: absolute; inset: 0;
-    background: rgba(174,214,241,.55); border-radius: 5px;
+    content: "";
+    position: absolute; inset: 0;
+    background: rgba(174,214,241,.55);
+    border-radius: 5px;
   }
   .block .badge.bomb-warning { background: #e74c3c; color: white; }
+
+  /* ---- controls ---- */
   .controls { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; justify-content: center; }
   button.main {
-    border: none; border-radius: 6px; padding: 10px 20px;
-    font-size: 14px; font-weight: bold; color: white; cursor: pointer;
+    border: none; border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px; font-weight: bold;
+    color: white; cursor: pointer;
   }
   button.main:hover { filter: brightness(1.1); }
   .btn-hint    { background: #f39c12; }
@@ -110,15 +138,20 @@
   .btn-restart { background: #9b59b6; }
   .btn-solve   { background: #1abc9c; }
   .btn-scan    { background: #e17055; }
+
   #status {
-    min-height: 24px; padding: 8px 14px; font-size: 14px;
+    min-height: 24px; padding: 8px 14px;
+    font-size: 14px;
     background: rgba(0,0,0,.2); border-radius: 6px;
-    text-align: center; max-width: 700px;
+    text-align: center;
+    max-width: 700px;
   }
-  #status.win   { color: #2ecc71; font-weight: bold; }
-  #status.error { color: #e74c3c; }
-  #status.hint  { color: #f1c40f; }
-  #status.info  { color: #85c1e9; }
+  #status.win    { color: #2ecc71; font-weight: bold; }
+  #status.error  { color: #e74c3c; }
+  #status.hint   { color: #f1c40f; }
+  #status.info   { color: #85c1e9; }
+
+  /* ---- settings / api-key modal ---- */
   #settings-btn {
     position: fixed; top: 12px; right: 14px;
     background: #2c3e50; border: none; color: #bdc3c7;
@@ -143,32 +176,52 @@
     width: 100%; padding: 8px 10px;
     background: #34495e; color: white;
     border: 1px solid #7f8c8d; border-radius: 4px;
-    font-family: monospace; font-size: 13px; margin-bottom: 12px;
+    font-family: monospace; font-size: 13px;
+    margin-bottom: 12px;
   }
   #settings-modal .row { display: flex; gap: 8px; }
+
+  /* ---- import/export modal ---- */
   #io-modal {
-    display: none; position: fixed; inset: 0;
+    display: none;
+    position: fixed; inset: 0;
     background: rgba(0,0,0,.7);
-    align-items: center; justify-content: center; z-index: 100;
+    align-items: center; justify-content: center;
+    z-index: 100;
   }
   #io-modal.visible { display: flex; }
-  #io-modal .box { background: #2c3e50; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; }
+  #io-modal .box {
+    background: #2c3e50; padding: 20px; border-radius: 10px;
+    width: 90%; max-width: 500px;
+  }
   #io-modal textarea {
-    width: 100%; height: 200px; background: #34495e; color: white;
+    width: 100%; height: 200px;
+    background: #34495e; color: white;
     border: 1px solid #7f8c8d; border-radius: 4px;
-    font-family: monospace; font-size: 12px; padding: 8px;
+    font-family: monospace; font-size: 12px;
+    padding: 8px;
   }
   #io-modal .row { display: flex; gap: 8px; margin-top: 10px; }
 </style>
 </head>
+
 <body>
 
-<button id="settings-btn" title="Gemini API Key" onclick="openSettings()">&#9881;</button>
+<!-- API key settings button -->
+<button id="settings-btn" title="API Key settings" onclick="openSettings()">&#9881;</button>
 
+<!-- Settings modal -->
 <div id="settings-modal">
   <div class="box">
-    <h3>Gemini API Key (optional)</h3>
-    <p>For <strong>Scan Game</strong> auto-recognition. Get a free key at <strong>aistudio.google.com</strong>.<br><br>Without a key, use <strong>Build Level &#8594; &#128247; Load BG</strong> to load your screenshot as a background and click each tile manually.</p>
+    <h3>Gemini API Key</h3>
+    <p>
+      Enter your key once &mdash; it is stored only in this browser (localStorage).
+      Get a free key at <strong>aistudio.google.com</strong> &rarr; Get API key.<br><br>
+      With a key saved, <strong>Scan Game</strong> works entirely on your phone
+      with no PC required.<br><br>
+      Without a key, use <strong>Build Level &rarr; &#128247; Load BG</strong> to load your
+      screenshot as a background and click each tile manually.
+    </p>
     <input type="text" id="api-key-input" placeholder="AIzaSy..." autocomplete="off" spellcheck="false">
     <div class="row">
       <button class="ed-btn success" onclick="saveApiKey()">Save</button>
@@ -185,9 +238,9 @@
   <button id="tab-edit" onclick="setMode('edit')">&#9998; Build Level</button>
 </div>
 
-<!-- BG alignment bar -->
+<!-- Background alignment bar (visible when a BG image is loaded) -->
 <div id="bg-bar" style="display:none;background:#2c3e50;padding:8px 16px;border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:10px;align-items:center;max-width:720px;">
-  <span style="font-size:12px;color:#f1c40f;font-weight:bold;">&#128247; BG active &#8212; align with X/Y/Zoom, then click tiles to label them</span>
+  <span style="font-size:12px;color:#f1c40f;font-weight:bold;">&#128247; BG active &mdash; align with X/Y/Zoom, then click tiles to label them</span>
   <label style="font-size:12px;color:#bdc3c7;">X</label>
   <input type="number" id="bg-x" value="0" style="width:54px" oninput="drawEditor()">
   <label style="font-size:12px;color:#bdc3c7;">Y</label>
@@ -247,7 +300,10 @@
   <button class="ed-btn success" onclick="setMode('play')">&#9654; Play This!</button>
 </div>
 
-<div id="slot"><span class="label" id="slot-label">SLOT 0/7</span></div>
+<!-- Slot (play mode only) -->
+<div id="slot">
+  <span class="label" id="slot-label">SLOT 0/7</span>
+</div>
 
 <div id="board-wrap"><div id="board"></div></div>
 
@@ -262,10 +318,13 @@
 
 <div id="status">Click a block to play.</div>
 
+<!-- Import/Export modal -->
 <div id="io-modal">
   <div class="box">
     <h3 id="io-title">Save Level</h3>
-    <p id="io-help" style="font-size:13px;color:#bdc3c7;">Copy this text and save it somewhere.</p>
+    <p id="io-help" style="font-size:13px;color:#bdc3c7;">
+      Copy this text and save it somewhere &mdash; paste it back in to load.
+    </p>
     <textarea id="io-text"></textarea>
     <div class="row">
       <button class="ed-btn success" id="io-action">Apply</button>
@@ -276,445 +335,740 @@
 
 <script>
 const DEFAULT_BLOCKS = [
-  {id:1,color:"red",layer:0,x:0,y:0},{id:2,color:"red",layer:0,x:1,y:0},
-  {id:3,color:"blue",layer:0,x:2,y:0},{id:4,color:"blue",layer:0,x:0,y:1},
-  {id:5,color:"yellow",layer:0,x:1,y:1},{id:6,color:"yellow",layer:0,x:2,y:1},
-  {id:7,color:"red",layer:1,x:0,y:0},{id:8,color:"blue",layer:1,x:1,y:0},
-  {id:9,color:"yellow",layer:1,x:2,y:0},
-  {id:10,color:"blue",layer:2,x:1,y:0,kind:"frozen",threshold:3},
-  {id:11,color:"yellow",layer:2,x:2,y:0,kind:"bomb",threshold:5},
+  {id:1, color:"red",    layer:0, x:0, y:0},
+  {id:2, color:"red",    layer:0, x:1, y:0},
+  {id:3, color:"blue",   layer:0, x:2, y:0},
+  {id:4, color:"blue",   layer:0, x:0, y:1},
+  {id:5, color:"yellow", layer:0, x:1, y:1},
+  {id:6, color:"yellow", layer:0, x:2, y:1},
+  {id:7, color:"red",    layer:1, x:0, y:0},
+  {id:8, color:"blue",   layer:1, x:1, y:0},
+  {id:9, color:"yellow", layer:1, x:2, y:0},
+  {id:10, color:"blue",   layer:2, x:1, y:0, kind:"frozen", threshold:3},
+  {id:11, color:"yellow", layer:2, x:2, y:0, kind:"bomb",   threshold:5},
 ];
-const MAX_SLOT=7,BLOCK_SIZE=80,LAYER_OFFSET=7;
-let GRID_W=6,GRID_H=5;
-const STORAGE_KEY="match3_level_v2";
-const COLORS={red:"#e74c3c",blue:"#3498db",yellow:"#f1c40f",green:"#2ecc71",purple:"#9b59b6",orange:"#e67e22",pink:"#fd79a8",cyan:"#1abc9c",white:"#ecf0f1",black:"#2c3e50",brown:"#8b6f47"};
-const PALETTE_ORDER=["red","blue","yellow","green","purple","orange","pink","cyan","white","black","brown"];
-const toHex=c=>COLORS[c.toLowerCase()]||"#bdc3c7";
-let byId,state,history,mode="play";
-let edit={color:"red",kind:"normal",layer:0,threshold:3,eraser:false};
-let bgDataUrl=null;
-let BLOCKS=loadFromStorage()||JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+
+const MAX_SLOT     = 7;
+const BLOCK_SIZE   = 80;
+const LAYER_OFFSET = 7;
+let   GRID_W       = 6;
+let   GRID_H       = 5;
+const STORAGE_KEY  = "match3_level_v2";
+
+const COLORS = {
+  red:"#e74c3c", blue:"#3498db", yellow:"#f1c40f", green:"#2ecc71",
+  purple:"#9b59b6", orange:"#e67e22", pink:"#fd79a8", cyan:"#1abc9c",
+  white:"#ecf0f1", black:"#2c3e50", brown:"#8b6f47",
+};
+const PALETTE_ORDER = ["red","blue","yellow","green","purple","orange","pink","cyan","white","black","brown"];
+const toHex = c => COLORS[c.toLowerCase()] || "#bdc3c7";
+
+let byId, state, history;
+let mode = "play";
+let edit = { color: "red", kind: "normal", layer: 0, threshold: 3, eraser: false };
+
+let BLOCKS = loadFromStorage() || JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
 normalizeBlocks();
 
-function normalizeBlocks(){
-  BLOCKS.forEach(b=>{
-    b.w=b.w||1;b.h=b.h||1;b.kind=b.kind||"normal";
-    if(b.threshold==null)b.threshold=b.kind==="frozen"?3:b.kind==="bomb"?5:0;
+function normalizeBlocks() {
+  BLOCKS.forEach(b => {
+    b.w = b.w || 1; b.h = b.h || 1;
+    b.kind = b.kind || "normal";
+    if (b.threshold == null) {
+      b.threshold = b.kind === "frozen" ? 3 : b.kind === "bomb" ? 5 : 0;
+    }
   });
-  byId=Object.fromEntries(BLOCKS.map(b=>[b.id,b]));
+  byId = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 }
-function loadFromStorage(){
-  try{
-    const raw=localStorage.getItem(STORAGE_KEY);
-    if(!raw)return null;
-    const data=JSON.parse(raw);
-    if(data.gridW){GRID_W=data.gridW;GRID_H=data.gridH;}
-    return data.blocks||null;
-  }catch(_){return null;}
-}
-function saveToStorage(){localStorage.setItem(STORAGE_KEY,JSON.stringify({blocks:BLOCKS,gridW:GRID_W,gridH:GRID_H}));}
-function nextId(){return BLOCKS.length===0?1:Math.max(...BLOCKS.map(b=>b.id))+1;}
 
-function overlaps(a,b){return!(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y);}
-function accessibleIds(remIds,byId){
-  const blocks=remIds.map(i=>byId[i]),out=new Set();
-  for(const b of blocks){
-    let blocked=false;
-    for(const o of blocks)if(o.layer>b.layer&&overlaps(b,o)){blocked=true;break;}
-    if(!blocked)out.add(b.id);
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.gridW) { GRID_W = data.gridW; GRID_H = data.gridH; }
+    return data.blocks || null;
+  } catch (_) { return null; }
+}
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ blocks: BLOCKS, gridW: GRID_W, gridH: GRID_H }));
+}
+function nextId() {
+  return BLOCKS.length === 0 ? 1 : Math.max(...BLOCKS.map(b => b.id)) + 1;
+}
+
+function overlaps(a, b) {
+  return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
+           a.y + a.h <= b.y || b.y + b.h <= a.y);
+}
+function accessibleIds(remIds, byId) {
+  const blocks = remIds.map(i => byId[i]);
+  const out = new Set();
+  for (const b of blocks) {
+    let blocked = false;
+    for (const o of blocks) {
+      if (o.layer > b.layer && overlaps(b, o)) { blocked = true; break; }
+    }
+    if (!blocked) out.add(b.id);
   }
   return out;
 }
-function slotAdd(slot,color){
-  const lst=slot.slice();
-  let pos=lst.length;
-  for(let i=lst.length-1;i>=0;i--)if(lst[i]===color){pos=i+1;break;}
-  lst.splice(pos,0,color);
-  let changed=true;
-  while(changed){changed=false;for(let i=0;i<lst.length-2;i++)if(lst[i]===lst[i+1]&&lst[i+1]===lst[i+2]){lst.splice(i,3);changed=true;break;}}
-  return lst.length>MAX_SLOT?null:lst;
-}
-function isClickable(b,cnt){return b.kind==="frozen"?cnt>=b.threshold:true;}
-function step(state,clickedId,byId){
-  const counters=new Map(state.counters);
-  if(!counters.has(clickedId))return null;
-  const access=accessibleIds([...counters.keys()],byId);
-  if(!access.has(clickedId))return null;
-  const clicked=byId[clickedId];
-  if(!isClickable(clicked,counters.get(clickedId)))return null;
-  const newSlot=slotAdd(state.slot,clicked.color);
-  if(newSlot===null)return null;
-  const nc=new Map();
-  for(const[bid,cnt]of counters){
-    if(bid===clickedId)continue;
-    const b=byId[bid];
-    if(access.has(bid)&&(b.kind==="frozen"||b.kind==="bomb")){
-      const ncnt=cnt+1;
-      if(b.kind==="bomb"&&ncnt>=b.threshold)return null;
-      nc.set(bid,b.kind==="frozen"?Math.min(ncnt,b.threshold):ncnt);
-    }else nc.set(bid,cnt);
+function slotAdd(slot, color) {
+  const lst = slot.slice();
+  let pos = lst.length;
+  for (let i = lst.length - 1; i >= 0; i--) {
+    if (lst[i] === color) { pos = i + 1; break; }
   }
-  return{counters:[...nc].sort((a,b)=>a[0]-b[0]),slot:newSlot};
+  lst.splice(pos, 0, color);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let i = 0; i < lst.length - 2; i++) {
+      if (lst[i] === lst[i+1] && lst[i+1] === lst[i+2]) {
+        lst.splice(i, 3); changed = true; break;
+      }
+    }
+  }
+  return lst.length > MAX_SLOT ? null : lst;
 }
-function stateKey(s){return s.counters.map(([i,c])=>i+":"+c).join(",")+"|"+s.slot.join(",");}
-function solve(state,byId,maxStates=300000){
-  const start={counters:state.counters.slice(),slot:state.slot.slice()};
-  const queue=[{s:start,path:[]}];
-  const visited=new Set([stateKey(start)]);
-  while(queue.length){
-    const{s,path}=queue.shift();
-    if(s.counters.length===0)return path;
-    if(visited.size>maxStates)return null;
-    const remIds=s.counters.map(([i])=>i);
-    const access=accessibleIds(remIds,byId);
-    const cmap=new Map(s.counters);
-    for(const bid of access){
-      const b=byId[bid];
-      if(!isClickable(b,cmap.get(bid)))continue;
-      const nxt=step(s,bid,byId);
-      if(!nxt)continue;
-      const k=stateKey(nxt);
-      if(visited.has(k))continue;
+function isClickable(b, cnt) {
+  if (b.kind === "frozen") return cnt >= b.threshold;
+  return true;
+}
+function step(state, clickedId, byId) {
+  const counters = new Map(state.counters);
+  if (!counters.has(clickedId)) return null;
+  const access = accessibleIds([...counters.keys()], byId);
+  if (!access.has(clickedId)) return null;
+  const clicked = byId[clickedId];
+  if (!isClickable(clicked, counters.get(clickedId))) return null;
+  const newSlot = slotAdd(state.slot, clicked.color);
+  if (newSlot === null) return null;
+  const nc = new Map();
+  for (const [bid, cnt] of counters) {
+    if (bid === clickedId) continue;
+    const b = byId[bid];
+    if (access.has(bid) && (b.kind === "frozen" || b.kind === "bomb")) {
+      const ncnt = cnt + 1;
+      if (b.kind === "bomb" && ncnt >= b.threshold) return null;
+      nc.set(bid, b.kind === "frozen" ? Math.min(ncnt, b.threshold) : ncnt);
+    } else {
+      nc.set(bid, cnt);
+    }
+  }
+  return { counters: [...nc].sort((a,b)=>a[0]-b[0]), slot: newSlot };
+}
+function stateKey(s) {
+  return s.counters.map(([i,c])=>i+":"+c).join(",") + "|" + s.slot.join(",");
+}
+function solve(state, byId, maxStates = 300000) {
+  const start = { counters: state.counters.slice(), slot: state.slot.slice() };
+  const queue = [{ s: start, path: [] }];
+  const visited = new Set([stateKey(start)]);
+  while (queue.length) {
+    const { s, path } = queue.shift();
+    if (s.counters.length === 0) return path;
+    if (visited.size > maxStates) return null;
+    const remIds = s.counters.map(([i])=>i);
+    const access = accessibleIds(remIds, byId);
+    const cmap = new Map(s.counters);
+    for (const bid of access) {
+      const b = byId[bid];
+      if (!isClickable(b, cmap.get(bid))) continue;
+      const nxt = step(s, bid, byId);
+      if (!nxt) continue;
+      const k = stateKey(nxt);
+      if (visited.has(k)) continue;
       visited.add(k);
-      queue.push({s:nxt,path:path.concat(bid)});
+      queue.push({ s: nxt, path: path.concat(bid) });
     }
   }
   return null;
 }
 
-function setStatus(text,klass=""){const el=document.getElementById("status");el.textContent=text;el.className=klass;}
-function reset(){state={counters:BLOCKS.map(b=>[b.id,0]).sort((a,b)=>a[0]-b[0]),slot:[]};history=[];draw();}
+function setStatus(text, klass="") {
+  const el = document.getElementById("status");
+  el.textContent = text;
+  el.className = klass;
+}
 
-function setMode(newMode){
-  mode=newMode;
-  document.getElementById("tab-play").classList.toggle("active",mode==="play");
-  document.getElementById("tab-edit").classList.toggle("active",mode==="edit");
-  document.getElementById("editor-bar").classList.toggle("visible",mode==="edit");
-  document.getElementById("slot").style.display=mode==="play"?"flex":"none";
-  document.getElementById("play-controls").style.display=mode==="play"?"flex":"none";
-  if(mode==="play"){
-    document.getElementById("board").style.backgroundImage="";
-    saveToStorage();normalizeBlocks();reset();
+function reset() {
+  state = {
+    counters: BLOCKS.map(b => [b.id, 0]).sort((a,b)=>a[0]-b[0]),
+    slot: [],
+  };
+  history = [];
+  draw();
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  document.getElementById("tab-play").classList.toggle("active", mode === "play");
+  document.getElementById("tab-edit").classList.toggle("active", mode === "edit");
+  document.getElementById("editor-bar").classList.toggle("visible", mode === "edit");
+  document.getElementById("slot").style.display      = mode === "play" ? "flex" : "none";
+  document.getElementById("play-controls").style.display = mode === "play" ? "flex" : "none";
+
+  if (mode === "play") {
+    document.getElementById("board").style.backgroundImage = "";
+    saveToStorage();
+    normalizeBlocks();
+    reset();
     setStatus("Click a block to play.");
-  }else{
-    setStatus("Switch to Build Level: tap ‘℉ Load BG’ to load your screenshot as background, align the grid, then click each tile to label it.","info");
+  } else {
+    setStatus("Click an empty cell to place a block. Click an existing block to edit/remove (with Eraser).", "info");
     drawEditor();
   }
 }
 
-function draw(){
-  const slotEl=document.getElementById("slot");
-  slotEl.querySelectorAll(".cell").forEach(n=>n.remove());
-  document.getElementById("slot-label").textContent=`SLOT ${state.slot.length}/${MAX_SLOT}`;
-  for(let i=0;i<MAX_SLOT;i++){
-    const cell=document.createElement("span");
-    cell.className="cell";
-    if(i<state.slot.length){cell.classList.add("filled");cell.style.background=toHex(state.slot[i]);}
+function draw() {
+  const slotEl = document.getElementById("slot");
+  slotEl.querySelectorAll(".cell").forEach(n => n.remove());
+  document.getElementById("slot-label").textContent =
+    `SLOT ${state.slot.length}/${MAX_SLOT}`;
+  for (let i = 0; i < MAX_SLOT; i++) {
+    const cell = document.createElement("span");
+    cell.className = "cell";
+    if (i < state.slot.length) {
+      cell.classList.add("filled");
+      cell.style.background = toHex(state.slot[i]);
+    }
     slotEl.appendChild(cell);
   }
-  const board=document.getElementById("board");
-  board.innerHTML="";
-  if(BLOCKS.length===0){
-    board.style.width="300px";board.style.height="100px";
-    board.innerHTML='<div style="text-align:center;padding:30px;color:#bdc3c7;">No blocks. Switch to Build Level.</div>';
+
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  if (BLOCKS.length === 0) {
+    board.style.width = "300px"; board.style.height = "100px";
+    board.innerHTML = '<div style="text-align:center;padding:30px;color:#bdc3c7;">No blocks. Switch to Build Level to design a stage.</div>';
     return;
   }
-  const remIds=state.counters.map(([i])=>i);
-  if(remIds.length===0){
-    setStatus("You cleared the board!","win");
-    board.style.width="300px";board.style.height="100px";
-    board.innerHTML='<div style="font-size:36px;text-align:center;padding:20px;color:#2ecc71;font-weight:bold;">YOU WIN!</div>';
+
+  const remIds = state.counters.map(([i])=>i);
+  if (remIds.length === 0) {
+    setStatus("You cleared the board!", "win");
+    board.style.width = "300px"; board.style.height = "100px";
+    board.innerHTML = '<div style="font-size:36px;text-align:center;padding:20px;color:#2ecc71;font-weight:bold;">YOU WIN!</div>';
     return;
   }
-  const access=accessibleIds(remIds,byId),cmap=new Map(state.counters);
-  let maxX=0,maxY=0,maxL=0;
-  for(const id of remIds){const b=byId[id];maxX=Math.max(maxX,b.x+b.w);maxY=Math.max(maxY,b.y+b.h);maxL=Math.max(maxL,b.layer);}
-  board.style.width=(maxX*BLOCK_SIZE+maxL*LAYER_OFFSET)+"px";
-  board.style.height=(maxY*BLOCK_SIZE+maxL*LAYER_OFFSET)+"px";
-  const sorted=remIds.slice().sort((a,b)=>byId[a].layer-byId[b].layer);
-  for(const id of sorted){
-    const b=byId[id],cnt=cmap.get(id),off=b.layer*LAYER_OFFSET;
-    const div=document.createElement("div");
-    div.className="block";
-    div.style.background=toHex(b.color);
-    div.style.left=(b.x*BLOCK_SIZE+off)+"px";div.style.top=(b.y*BLOCK_SIZE+off)+"px";
-    div.style.width=(b.w*BLOCK_SIZE-4)+"px";div.style.height=(b.h*BLOCK_SIZE-4)+"px";
-    div.style.zIndex=b.layer;
-    const isFrozenLocked=b.kind==="frozen"&&cnt<b.threshold,isTop=access.has(id);
-    if(isTop&&!isFrozenLocked)div.classList.add("top");
-    if(isFrozenLocked)div.classList.add("locked","frozen-locked");
-    div.innerHTML=`<div class="id">#${b.id}</div><div class="name">${b.color}</div>`+
-      (isFrozenLocked?`<div class="badge">FROZEN ${cnt}/${b.threshold}</div>`:
-       b.kind==="frozen"&&isTop?`<div class="badge">THAWED</div>`:
-       b.kind==="bomb"&&isTop?`<div class="badge ${b.threshold-cnt<=2?'bomb-warning':''}">BOMB ${b.threshold-cnt}</div>`:"");
-    div.onclick=()=>clickBlock(id);
+
+  const access = accessibleIds(remIds, byId);
+  const cmap = new Map(state.counters);
+
+  let maxX = 0, maxY = 0, maxL = 0;
+  for (const id of remIds) {
+    const b = byId[id];
+    maxX = Math.max(maxX, b.x + b.w);
+    maxY = Math.max(maxY, b.y + b.h);
+    maxL = Math.max(maxL, b.layer);
+  }
+  board.style.width  = (maxX * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+  board.style.height = (maxY * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+
+  const sorted = remIds.slice().sort((a,b) => byId[a].layer - byId[b].layer);
+  for (const id of sorted) {
+    const b = byId[id];
+    const cnt = cmap.get(id);
+    const off = b.layer * LAYER_OFFSET;
+    const div = document.createElement("div");
+    div.className = "block";
+    div.style.background = toHex(b.color);
+    div.style.left = (b.x * BLOCK_SIZE + off) + "px";
+    div.style.top  = (b.y * BLOCK_SIZE + off) + "px";
+    div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
+    div.style.height = (b.h * BLOCK_SIZE - 4) + "px";
+    div.style.zIndex = b.layer;
+
+    const isFrozenLocked = b.kind === "frozen" && cnt < b.threshold;
+    const isTop = access.has(id);
+    if (isTop && !isFrozenLocked) div.classList.add("top");
+    if (isFrozenLocked) div.classList.add("locked", "frozen-locked");
+
+    div.innerHTML =
+      `<div class="id">#${b.id}</div>` +
+      `<div class="name">${b.color}</div>` +
+      (isFrozenLocked ?
+        `<div class="badge">FROZEN ${cnt}/${b.threshold}</div>` :
+        b.kind === "frozen" && isTop ? `<div class="badge">THAWED</div>` :
+        b.kind === "bomb" && isTop ?
+          `<div class="badge ${b.threshold-cnt<=2 ? 'bomb-warning':''}">BOMB ${b.threshold-cnt}</div>` :
+          ""
+      );
+
+    div.onclick = () => clickBlock(id);
     board.appendChild(div);
   }
 }
 
-function shuffleArray(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
-function buildCandidate(colorPool,difficulty){
-  const totalBlocks=colorPool.length*3,colorList=[];
-  for(const c of colorPool)colorList.push(c,c,c);
+function buildCandidate(colorPool, difficulty) {
+  const totalBlocks = colorPool.length * 3;
+  const colorList = [];
+  for (const c of colorPool) colorList.push(c, c, c);
   shuffleArray(colorList);
-  const allPos=[];
-  for(let x=0;x<GRID_W;x++)for(let y=0;y<GRID_H;y++)allPos.push({x,y});
+  const allPos = [];
+  for (let x = 0; x < GRID_W; x++)
+    for (let y = 0; y < GRID_H; y++)
+      allPos.push({ x, y });
   shuffleArray(allPos);
-  const numL0=Math.min(Math.max(colorPool.length,Math.ceil(totalBlocks*0.55)),allPos.length);
-  const numL1=Math.min(Math.floor(totalBlocks*0.30),numL0);
-  const numL2=totalBlocks-numL0-numL1;
-  const l0pos=allPos.slice(0,numL0);
-  const l1pos=shuffleArray([...l0pos]).slice(0,numL1);
-  const l2pos=numL1>0?shuffleArray([...l1pos]).slice(0,Math.max(0,numL2)):[];
-  const placements=[...l0pos.map(p=>({...p,layer:0})),...l1pos.map(p=>({...p,layer:1})),...l2pos.map(p=>({...p,layer:2}))];
+  const numL0 = Math.min(Math.max(colorPool.length, Math.ceil(totalBlocks * 0.55)), allPos.length);
+  const numL1 = Math.min(Math.floor(totalBlocks * 0.30), numL0);
+  const numL2 = totalBlocks - numL0 - numL1;
+  const l0pos = allPos.slice(0, numL0);
+  const l1pos = shuffleArray([...l0pos]).slice(0, numL1);
+  const l2pos = numL1 > 0 ? shuffleArray([...l1pos]).slice(0, Math.max(0, numL2)) : [];
+  const placements = [
+    ...l0pos.map(p => ({ ...p, layer: 0 })),
+    ...l1pos.map(p => ({ ...p, layer: 1 })),
+    ...l2pos.map(p => ({ ...p, layer: 2 })),
+  ];
   shuffleArray(placements);
-  const blocks=placements.slice(0,totalBlocks).map((p,i)=>({id:i+1,color:colorList[i],layer:p.layer,x:p.x,y:p.y,w:1,h:1,kind:"normal",threshold:0}));
-  if(difficulty!=="easy"){
-    const upper=blocks.filter(b=>b.layer>0);shuffleArray(upper);
-    if(upper.length>=1){upper[0].kind="frozen";upper[0].threshold=3;}
-    if(difficulty==="hard"&&upper.length>=2){upper[1].kind="bomb";upper[1].threshold=5+Math.floor(totalBlocks*0.4);}
+  const blocks = placements.slice(0, totalBlocks).map((p, i) => ({
+    id: i + 1, color: colorList[i],
+    layer: p.layer, x: p.x, y: p.y, w: 1, h: 1,
+    kind: "normal", threshold: 0,
+  }));
+  if (difficulty !== "easy") {
+    const upper = blocks.filter(b => b.layer > 0);
+    shuffleArray(upper);
+    if (upper.length >= 1) { upper[0].kind = "frozen"; upper[0].threshold = 3; }
+    if (difficulty === "hard" && upper.length >= 2) {
+      upper[1].kind = "bomb";
+      upper[1].threshold = 5 + Math.floor(totalBlocks * 0.4);
+    }
   }
   return blocks;
 }
 
-function generatePuzzle(){
-  const diff=document.getElementById("gen-difficulty").value;
-  const triplets={easy:3,medium:4,hard:5}[diff]||3;
-  const colorPool=shuffleArray([...PALETTE_ORDER]).slice(0,triplets);
+function generatePuzzle() {
+  const diff      = document.getElementById("gen-difficulty").value;
+  const triplets  = { easy: 3, medium: 4, hard: 5 }[diff] || 3;
+  const colorPool = shuffleArray([...PALETTE_ORDER]).slice(0, triplets);
   setStatus("Generating…");
-  setTimeout(()=>{
-    for(let attempt=0;attempt<50;attempt++){
-      const candidate=buildCandidate(colorPool,diff);
-      candidate.forEach(b=>{b.w=b.w||1;b.h=b.h||1;b.kind=b.kind||"normal";if(b.threshold==null)b.threshold=0;});
-      const tempById=Object.fromEntries(candidate.map(b=>[b.id,b]));
-      const testState={counters:candidate.map(b=>[b.id,0]).sort((a,b)=>a[0]-b[0]),slot:[]};
-      const sol=solve(testState,tempById,200000);
-      if(sol!==null){
-        BLOCKS=candidate;
-        GRID_W=parseInt(document.getElementById("grid-w-inp").value)||6;
-        GRID_H=parseInt(document.getElementById("grid-h-inp").value)||5;
-        normalizeBlocks();saveToStorage();
-        if(mode==="edit")drawEditor();else{reset();draw();}
-        setStatus(`New ${diff} puzzle — ${candidate.length} blocks, ${sol.length} moves. (attempt ${attempt+1})`,"hint");
+  setTimeout(() => {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const candidate = buildCandidate(colorPool, diff);
+      candidate.forEach(b => {
+        b.w = b.w || 1; b.h = b.h || 1;
+        b.kind = b.kind || "normal";
+        if (b.threshold == null) b.threshold = 0;
+      });
+      const tempById = Object.fromEntries(candidate.map(b => [b.id, b]));
+      const testState = {
+        counters: candidate.map(b => [b.id, 0]).sort((a, b) => a[0] - b[0]),
+        slot: [],
+      };
+      const sol = solve(testState, tempById, 200000);
+      if (sol !== null) {
+        BLOCKS = candidate;
+        GRID_W = parseInt(document.getElementById("grid-w-inp").value) || 6;
+        GRID_H = parseInt(document.getElementById("grid-h-inp").value) || 5;
+        normalizeBlocks();
+        saveToStorage();
+        if (mode === "edit") drawEditor(); else { reset(); draw(); }
+        setStatus(`New ${diff} puzzle — ${candidate.length} blocks, ${sol.length} moves to solve. (attempt ${attempt + 1})`, "hint");
         return;
       }
     }
-    setStatus("Could not generate a solvable puzzle. Try smaller grid.","error");
-  },20);
+    setStatus("Could not generate a solvable puzzle. Try smaller grid.", "error");
+  }, 20);
 }
 
-function drawEditor(){
-  const board=document.getElementById("board");
-  board.innerHTML="";
-  if(bgDataUrl){
-    const bx=parseInt(document.getElementById("bg-x").value)||0;
-    const by=parseInt(document.getElementById("bg-y").value)||0;
-    const bz=parseInt(document.getElementById("bg-z").value)||100;
-    board.style.backgroundImage=`url(${bgDataUrl})`;
-    board.style.backgroundRepeat="no-repeat";
-    board.style.backgroundPosition=`${bx}px ${by}px`;
-    board.style.backgroundSize=`${bz}%`;
-  }else{
-    board.style.backgroundImage="";
+function drawEditor() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  if (bgDataUrl) {
+    const bx = parseInt(document.getElementById("bg-x").value) || 0;
+    const by = parseInt(document.getElementById("bg-y").value) || 0;
+    const bz = parseInt(document.getElementById("bg-z").value) || 100;
+    board.style.backgroundImage    = `url(${bgDataUrl})`;
+    board.style.backgroundRepeat   = "no-repeat";
+    board.style.backgroundPosition = `${bx}px ${by}px`;
+    board.style.backgroundSize     = `${bz}%`;
+  } else {
+    board.style.backgroundImage = "";
   }
-  let maxL=0;
-  BLOCKS.forEach(b=>{maxL=Math.max(maxL,b.layer);});
-  maxL=Math.max(maxL,parseInt(document.getElementById("layer-inp").value)||0);
-  board.style.width=(GRID_W*BLOCK_SIZE+maxL*LAYER_OFFSET)+"px";
-  board.style.height=(GRID_H*BLOCK_SIZE+maxL*LAYER_OFFSET)+"px";
-  const off=edit.layer*LAYER_OFFSET;
-  for(let y=0;y<GRID_H;y++)for(let x=0;x<GRID_W;x++){
-    const cell=document.createElement("div");
-    cell.className="grid-cell";
-    cell.style.left=(x*BLOCK_SIZE+off)+"px";cell.style.top=(y*BLOCK_SIZE+off)+"px";
-    cell.style.width=(BLOCK_SIZE-4)+"px";cell.style.height=(BLOCK_SIZE-4)+"px";
-    cell.style.zIndex=edit.layer*10;
-    cell.onclick=()=>placeBlock(x,y);
-    board.appendChild(cell);
+
+  let maxL = 0;
+  BLOCKS.forEach(b => { maxL = Math.max(maxL, b.layer); });
+  maxL = Math.max(maxL, parseInt(document.getElementById("layer-inp").value) || 0);
+
+  board.style.width  = (GRID_W * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+  board.style.height = (GRID_H * BLOCK_SIZE + maxL * LAYER_OFFSET) + "px";
+
+  const off = edit.layer * LAYER_OFFSET;
+  for (let y = 0; y < GRID_H; y++) {
+    for (let x = 0; x < GRID_W; x++) {
+      const cell = document.createElement("div");
+      cell.className = "grid-cell";
+      cell.style.left = (x * BLOCK_SIZE + off) + "px";
+      cell.style.top  = (y * BLOCK_SIZE + off) + "px";
+      cell.style.width  = (BLOCK_SIZE - 4) + "px";
+      cell.style.height = (BLOCK_SIZE - 4) + "px";
+      cell.style.zIndex = edit.layer * 10;
+      cell.onclick = () => placeBlock(x, y);
+      board.appendChild(cell);
+    }
   }
-  const sorted=BLOCKS.slice().sort((a,b)=>a.layer-b.layer);
-  for(const b of sorted){
-    const off=b.layer*LAYER_OFFSET;
-    const div=document.createElement("div");
-    div.className="block editable top";
-    div.style.background=toHex(b.color);
-    div.style.left=(b.x*BLOCK_SIZE+off)+"px";div.style.top=(b.y*BLOCK_SIZE+off)+"px";
-    div.style.width=(b.w*BLOCK_SIZE-4)+"px";div.style.height=(b.h*BLOCK_SIZE-4)+"px";
-    div.style.zIndex=b.layer*10+1;
-    div.style.opacity=(b.layer===edit.layer||edit.eraser)?"1":"0.55";
-    div.innerHTML=`<div class="id">#${b.id} L${b.layer}</div><div class="name">${b.color}</div>`+
-      (b.kind!=="normal"?`<div class="badge">${b.kind.toUpperCase()} ${b.threshold}</div>`:"");
-    div.onclick=e=>{e.stopPropagation();editBlock(b.id);};
+
+  const sorted = BLOCKS.slice().sort((a,b) => a.layer - b.layer);
+  for (const b of sorted) {
+    const off = b.layer * LAYER_OFFSET;
+    const div = document.createElement("div");
+    div.className = "block editable top";
+    div.style.background = toHex(b.color);
+    div.style.left = (b.x * BLOCK_SIZE + off) + "px";
+    div.style.top  = (b.y * BLOCK_SIZE + off) + "px";
+    div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
+    div.style.height = (b.h * BLOCK_SIZE - 4) + "px";
+    div.style.zIndex = b.layer * 10 + 1;
+    div.style.opacity = (b.layer === edit.layer || edit.eraser) ? "1" : "0.55";
+    div.innerHTML =
+      `<div class="id">#${b.id} L${b.layer}</div>` +
+      `<div class="name">${b.color}</div>` +
+      (b.kind !== "normal" ? `<div class="badge">${b.kind.toUpperCase()} ${b.threshold}</div>` : "");
+    div.onclick = (e) => { e.stopPropagation(); editBlock(b.id); };
     board.appendChild(div);
   }
 }
 
-function placeBlock(x,y){
-  if(edit.eraser){setStatus("Click a block to erase it.","info");return;}
-  const existing=BLOCKS.find(b=>b.x===x&&b.y===y&&b.layer===edit.layer);
-  if(existing){existing.color=edit.color;existing.kind=edit.kind;existing.threshold=edit.kind==="normal"?0:edit.threshold;}
-  else BLOCKS.push({id:nextId(),color:edit.color,layer:edit.layer,x,y,w:1,h:1,kind:edit.kind,threshold:edit.kind==="normal"?0:edit.threshold});
-  saveToStorage();normalizeBlocks();drawEditor();
+function placeBlock(x, y) {
+  if (edit.eraser) { setStatus("Click an existing block to erase it.", "info"); return; }
+  const existing = BLOCKS.find(b => b.x === x && b.y === y && b.layer === edit.layer);
+  if (existing) {
+    existing.color = edit.color;
+    existing.kind  = edit.kind;
+    existing.threshold = edit.kind === "normal" ? 0 : edit.threshold;
+  } else {
+    BLOCKS.push({
+      id: nextId(), color: edit.color, layer: edit.layer,
+      x, y, w: 1, h: 1,
+      kind: edit.kind,
+      threshold: edit.kind === "normal" ? 0 : edit.threshold,
+    });
+  }
+  saveToStorage();
+  normalizeBlocks();
+  drawEditor();
   setStatus(`Placed ${edit.color} at (${x},${y}) layer ${edit.layer}.`);
 }
-function editBlock(id){
-  const idx=BLOCKS.findIndex(b=>b.id===id);
-  if(idx<0)return;
-  if(edit.eraser){BLOCKS.splice(idx,1);saveToStorage();normalizeBlocks();drawEditor();setStatus(`Removed #${id}.`);return;}
-  const b=BLOCKS[idx];
-  edit.color=b.color;edit.kind=b.kind;edit.layer=b.layer;edit.threshold=b.threshold||3;
-  syncToolbarFromEdit();setStatus(`Selected #${id}.`);drawEditor();
+
+function editBlock(id) {
+  const idx = BLOCKS.findIndex(b => b.id === id);
+  if (idx < 0) return;
+  if (edit.eraser) {
+    BLOCKS.splice(idx, 1);
+    saveToStorage();
+    normalizeBlocks();
+    drawEditor();
+    setStatus(`Removed block #${id}.`);
+    return;
+  }
+  const b = BLOCKS[idx];
+  edit.color = b.color;
+  edit.kind  = b.kind;
+  edit.layer = b.layer;
+  edit.threshold = b.threshold || 3;
+  syncToolbarFromEdit();
+  setStatus(`Selected #${id}.`);
+  drawEditor();
 }
-function clearAllBlocks(){if(!confirm("Remove ALL blocks?"))return;BLOCKS=[];saveToStorage();normalizeBlocks();drawEditor();setStatus("Board cleared.");}
-function toggleEraser(){edit.eraser=!edit.eraser;document.getElementById("eraser-btn").classList.toggle("active",edit.eraser);setStatus(edit.eraser?"Eraser ON.":"Eraser OFF.");}
-function buildPalette(){
-  const pal=document.getElementById("palette");pal.innerHTML="";
-  for(const c of PALETTE_ORDER){
-    const sw=document.createElement("div");sw.className="swatch";sw.style.background=toHex(c);sw.title=c;
-    if(c===edit.color)sw.classList.add("selected");
-    sw.onclick=()=>{edit.color=c;buildPalette();};
+
+function clearAllBlocks() {
+  if (!confirm("Remove ALL blocks?")) return;
+  BLOCKS = [];
+  saveToStorage();
+  normalizeBlocks();
+  drawEditor();
+  setStatus("Board cleared.");
+}
+
+function toggleEraser() {
+  edit.eraser = !edit.eraser;
+  document.getElementById("eraser-btn").classList.toggle("active", edit.eraser);
+  setStatus(edit.eraser ? "Eraser ON." : "Eraser OFF.");
+}
+
+function buildPalette() {
+  const pal = document.getElementById("palette");
+  pal.innerHTML = "";
+  for (const c of PALETTE_ORDER) {
+    const sw = document.createElement("div");
+    sw.className = "swatch";
+    sw.style.background = toHex(c);
+    sw.title = c;
+    if (c === edit.color) sw.classList.add("selected");
+    sw.onclick = () => { edit.color = c; buildPalette(); };
     pal.appendChild(sw);
   }
 }
-function onEditChange(){
-  edit.kind=document.getElementById("kind-sel").value;
-  edit.layer=parseInt(document.getElementById("layer-inp").value)||0;
-  edit.threshold=parseInt(document.getElementById("thresh-inp").value)||3;
-  document.getElementById("thresh-wrap").style.display=edit.kind==="normal"?"none":"flex";
-  if(mode==="edit")drawEditor();
+
+function onEditChange() {
+  edit.kind  = document.getElementById("kind-sel").value;
+  edit.layer = parseInt(document.getElementById("layer-inp").value) || 0;
+  edit.threshold = parseInt(document.getElementById("thresh-inp").value) || 3;
+  document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
+  if (mode === "edit") drawEditor();
 }
-function syncToolbarFromEdit(){
-  document.getElementById("kind-sel").value=edit.kind;
-  document.getElementById("layer-inp").value=edit.layer;
-  document.getElementById("thresh-inp").value=edit.threshold;
-  document.getElementById("thresh-wrap").style.display=edit.kind==="normal"?"none":"flex";
-  document.getElementById("grid-w-inp").value=GRID_W;
-  document.getElementById("grid-h-inp").value=GRID_H;
+function syncToolbarFromEdit() {
+  document.getElementById("kind-sel").value = edit.kind;
+  document.getElementById("layer-inp").value = edit.layer;
+  document.getElementById("thresh-inp").value = edit.threshold;
+  document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
+  document.getElementById("grid-w-inp").value = GRID_W;
+  document.getElementById("grid-h-inp").value = GRID_H;
   buildPalette();
 }
-function onGridSizeChange(){
-  const w=parseInt(document.getElementById("grid-w-inp").value)||6;
-  const h=parseInt(document.getElementById("grid-h-inp").value)||5;
-  GRID_W=Math.max(1,Math.min(20,w));GRID_H=Math.max(1,Math.min(20,h));
-  saveToStorage();if(mode==="edit")drawEditor();
+
+function onGridSizeChange() {
+  const w = parseInt(document.getElementById("grid-w-inp").value) || 6;
+  const h = parseInt(document.getElementById("grid-h-inp").value) || 5;
+  GRID_W = Math.max(1, Math.min(20, w));
+  GRID_H = Math.max(1, Math.min(20, h));
+  saveToStorage();
+  if (mode === "edit") drawEditor();
 }
-function openIO(kind){
-  const ta=document.getElementById("io-text"),action=document.getElementById("io-action");
-  document.getElementById("io-title").textContent=kind==="export"?"Save Level":"Load Level";
-  document.getElementById("io-help").textContent=kind==="export"?"Copy and save this text. Paste it back via Load to restore.":"Paste saved JSON then click Apply.";
-  if(kind==="export"){
-    ta.value=JSON.stringify({blocks:BLOCKS,gridW:GRID_W,gridH:GRID_H},null,2);
-    action.textContent="Copy to Clipboard";
-    action.onclick=()=>{ta.select();navigator.clipboard.writeText(ta.value);setStatus("Copied.");closeIO();};
-  }else{
-    ta.value="";action.textContent="Apply";
-    action.onclick=()=>{
-      try{
-        const data=JSON.parse(ta.value);
-        if(Array.isArray(data))BLOCKS=data;
-        else if(data.blocks){BLOCKS=data.blocks;if(data.gridW){GRID_W=data.gridW;GRID_H=data.gridH;}}
+
+function openIO(kind) {
+  const ta    = document.getElementById("io-text");
+  const action= document.getElementById("io-action");
+  document.getElementById("io-title").textContent = kind === "export" ? "Save Level" : "Load Level";
+  document.getElementById("io-help").textContent  = kind === "export"
+    ? "Copy this text and save it somewhere. Paste it back via Load to restore."
+    : "Paste saved JSON then click Apply.";
+  if (kind === "export") {
+    ta.value = JSON.stringify({ blocks: BLOCKS, gridW: GRID_W, gridH: GRID_H }, null, 2);
+    action.textContent = "Copy to Clipboard";
+    action.onclick = () => { ta.select(); navigator.clipboard.writeText(ta.value); setStatus("Copied."); closeIO(); };
+  } else {
+    ta.value = "";
+    action.textContent = "Apply";
+    action.onclick = () => {
+      try {
+        const data = JSON.parse(ta.value);
+        if (Array.isArray(data)) BLOCKS = data;
+        else if (data.blocks) { BLOCKS = data.blocks; if (data.gridW) { GRID_W = data.gridW; GRID_H = data.gridH; } }
         else throw new Error("Unrecognised format.");
-        normalizeBlocks();saveToStorage();syncToolbarFromEdit();closeIO();
-        if(mode==="edit")drawEditor();else reset();
+        normalizeBlocks(); saveToStorage(); syncToolbarFromEdit(); closeIO();
+        if (mode === "edit") drawEditor(); else reset();
         setStatus(`Loaded ${BLOCKS.length} blocks.`);
-      }catch(e){alert("Invalid JSON: "+e.message);}
+      } catch (e) { alert("Invalid JSON: " + e.message); }
     };
   }
   document.getElementById("io-modal").classList.add("visible");
 }
-function closeIO(){document.getElementById("io-modal").classList.remove("visible");}
+function closeIO() { document.getElementById("io-modal").classList.remove("visible"); }
 
-function clickBlock(bid){
-  const cmap=new Map(state.counters);
-  if(!cmap.has(bid))return;
-  const access=accessibleIds([...cmap.keys()],byId);
-  if(!access.has(bid)){setStatus(`Block #${bid} is buried.`,"info");return;}
-  const b=byId[bid];
-  if(b.kind==="frozen"&&cmap.get(bid)<b.threshold){setStatus(`#${bid} frozen — click ${b.threshold-cmap.get(bid)} other block(s) first.`,"info");return;}
-  const nxt=step(state,bid,byId);
-  if(!nxt){
-    if(slotAdd(state.slot,b.color)===null)setStatus("Slot overflow! Press Undo or Restart.","error");
-    else setStatus("BOOM! Bomb exploded. Press Undo or Restart.","error");
+function clickBlock(bid) {
+  const cmap = new Map(state.counters);
+  if (!cmap.has(bid)) return;
+  const access = accessibleIds([...cmap.keys()], byId);
+  if (!access.has(bid)) { setStatus(`Block #${bid} is buried.`, "info"); return; }
+  const b = byId[bid];
+  if (b.kind === "frozen" && cmap.get(bid) < b.threshold) {
+    setStatus(`#${bid} frozen — click ${b.threshold - cmap.get(bid)} more block(s) first.`, "info"); return;
+  }
+  const nxt = step(state, bid, byId);
+  if (!nxt) {
+    if (slotAdd(state.slot, b.color) === null) setStatus("Slot overflow! Press Undo or Restart.", "error");
+    else setStatus("BOOM! Bomb exploded. Press Undo or Restart.", "error");
     return;
   }
-  history.push(state);state=nxt;setStatus(`Clicked #${bid} (${b.color}).`);draw();
+  history.push(state); state = nxt;
+  setStatus(`Clicked #${bid} (${b.color}).`);
+  draw();
 }
-function hint(){
-  if(!state.counters.length)return;setStatus("Thinking...");
-  setTimeout(()=>{
-    const sol=solve(state,byId);
-    if(!sol)setStatus("No solution found.","error");
-    else if(!sol.length)setStatus("Already won!","win");
-    else{const nb=byId[sol[0]];setStatus(`Click #${sol[0]} (${nb.color}) — ${sol.length} moves to win.`,"hint");}
-  },30);
+
+function hint() {
+  if (state.counters.length === 0) return;
+  setStatus("Thinking...");
+  setTimeout(() => {
+    const sol = solve(state, byId);
+    if (!sol) setStatus("No solution found.", "error");
+    else if (!sol.length) setStatus("Already won!", "win");
+    else { const nb = byId[sol[0]]; setStatus(`Click #${sol[0]} (${nb.color}) — ${sol.length} moves to win.`, "hint"); }
+  }, 30);
 }
-function autoSolve(){
-  if(!state.counters.length){setStatus("Already won!","win");return;}
+
+function autoSolve() {
+  if (state.counters.length === 0) { setStatus("Already won!", "win"); return; }
   setStatus("Solving...");
-  setTimeout(()=>{
-    const sol=solve(state,byId);
-    if(!sol){setStatus("No solution found.","error");return;}
-    let i=0;
-    function play(){if(i>=sol.length){setStatus(`Solved in ${sol.length} moves!`,"win");return;}clickBlock(sol[i++]);setTimeout(play,400);}
+  setTimeout(() => {
+    const sol = solve(state, byId);
+    if (!sol) { setStatus("No solution found.", "error"); return; }
+    let i = 0;
+    function play() {
+      if (i >= sol.length) { setStatus(`Solved in ${sol.length} moves!`, "win"); return; }
+      clickBlock(sol[i++]);
+      setTimeout(play, 400);
+    }
     play();
-  },30);
+  }, 30);
 }
-function undo(){if(!history.length){setStatus("Nothing to undo.","info");return;}state=history.pop();draw();setStatus("Undone.");}
-function restart(){reset();setStatus("Restarted.");}
 
-// API KEY
-const API_KEY_STORAGE="gemini_api_key";
-function getApiKey(){return localStorage.getItem(API_KEY_STORAGE)||"";
-function openSettings(){document.getElementById("api-key-input").value=getApiKey();document.getElementById("settings-modal").classList.add("visible");}
-function closeSettings(){document.getElementById("settings-modal").classList.remove("visible");}
-function saveApiKey(){const key=document.getElementById("api-key-input").value.trim();if(key)localStorage.setItem(API_KEY_STORAGE,key);refreshSettingsBtn();closeSettings();setStatus("Gemini API key saved.","hint");}
-function clearApiKey(){localStorage.removeItem(API_KEY_STORAGE);document.getElementById("api-key-input").value="";refreshSettingsBtn();closeSettings();setStatus("API key cleared.","info");}
-function refreshSettingsBtn(){document.getElementById("settings-btn").classList.toggle("keyed",!!getApiKey());}
+function undo() {
+  if (!history.length) { setStatus("Nothing to undo.", "info"); return; }
+  state = history.pop(); draw(); setStatus("Undone.");
+}
+function restart() { reset(); setStatus("Restarted."); }
 
-// SCAN
-const RECOGNIZE_PROMPT=`This is a screenshot of a match-3 tile puzzle game. Identify EVERY tile and return a JSON array. For each tile: "color" (short name for the icon, same name for identical tiles), "x" (column 0-based), "y" (row 0-based), "layer" (0=bottom). Return ONLY valid JSON array.`;
-function resizeImage(file,maxPx=1920){return new Promise(resolve=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);const scale=Math.min(1,maxPx/Math.max(img.width,img.height)),w=Math.round(img.width*scale),h=Math.round(img.height*scale),canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;canvas.getContext("2d").drawImage(img,0,0,w,h);canvas.toBlob(blob=>{const reader=new FileReader();reader.onload=e=>resolve({data:e.target.result.split(",")[1],mediaType:"image/jpeg"});reader.readAsDataURL(blob);},'image/jpeg',0.85);};img.src=url;});}
-function parseBlocks(jsonText){let text=jsonText.trim().replace(/^```[a-z]*\n?/,'').replace(/\n?```$/,'').trim();const blocks=JSON.parse(text);blocks.forEach((b,i)=>{b.id=i+1;b.w=b.w||1;b.h=b.h||1;b.kind=b.kind||"normal";b.threshold=b.threshold||0;});return blocks;}
-async function callGeminiDirect(apiKey,imageData,mediaType){const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;const resp=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:mediaType,data:imageData}},{text:RECOGNIZE_PROMPT}]}],generationConfig:{temperature:0,maxOutputTokens:4096}})});if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`HTTP ${resp.status}`);}const msg=await resp.json();return msg.candidates[0].content.parts[0].text;}
-async function callServerAnalyze(file){const form=new FormData();form.append("image",file);const resp=await fetch("/analyze",{method:"POST",body:form});const data=await resp.json();if(data.error)throw new Error(data.error);return data.blocks;}
-function triggerScan(){document.getElementById("scan-input").click();}
-document.getElementById("scan-input").addEventListener("change",async function(){
-  const file=this.files[0];if(!file)return;this.value="";
-  setStatus("Analyzing screenshot — please wait…","info");
-  let blocks;
-  try{
-    const apiKey=getApiKey();
-    if(apiKey){const{data,mediaType}=await resizeImage(file);const raw=await callGeminiDirect(apiKey,data,mediaType);blocks=parseBlocks(raw);}
-    else blocks=await callServerAnalyze(file);
-  }catch(e){
-    const hint=getApiKey()?"Check your Gemini API key (⚙ button).":"No API key set. Use Build Level → ℉ Load BG to label tiles manually.";
-    setStatus(`Error: ${e.message}. ${hint}`,"error");return;
+/* ---- API KEY ---- */
+const API_KEY_STORAGE = "gemini_api_key";
+
+function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
+
+function openSettings() {
+  document.getElementById("api-key-input").value = getApiKey();
+  document.getElementById("settings-modal").classList.add("visible");
+}
+function closeSettings() {
+  document.getElementById("settings-modal").classList.remove("visible");
+}
+function saveApiKey() {
+  const key = document.getElementById("api-key-input").value.trim();
+  if (key) localStorage.setItem(API_KEY_STORAGE, key);
+  refreshSettingsBtn(); closeSettings();
+  setStatus("Gemini API key saved.", "hint");
+}
+function clearApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE);
+  document.getElementById("api-key-input").value = "";
+  refreshSettingsBtn(); closeSettings();
+  setStatus("API key cleared.", "info");
+}
+function refreshSettingsBtn() {
+  document.getElementById("settings-btn").classList.toggle("keyed", !!getApiKey());
+}
+
+/* ---- SCAN ---- */
+const RECOGNIZE_PROMPT = `This is a screenshot of a match-3 tile puzzle game. Identify EVERY tile and return a JSON array. For each tile: "color" (short consistent name for the icon, same name for identical tiles), "x" (column 0-based), "y" (row 0-based), "layer" (0=bottom). Return ONLY valid JSON array.`;
+
+function resizeImage(file, maxPx = 1920) {
+  return new Promise(resolve => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = e => resolve({ data: e.target.result.split(",")[1], mediaType: "image/jpeg" });
+        reader.readAsDataURL(blob);
+      }, "image/jpeg", 0.85);
+    };
+    img.src = url;
+  });
+}
+
+function parseBlocks(jsonText) {
+  let text = jsonText.trim().replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
+  const blocks = JSON.parse(text);
+  blocks.forEach((b, i) => {
+    b.id = i + 1; b.w = b.w || 1; b.h = b.h || 1;
+    b.kind = b.kind || "normal"; b.threshold = b.threshold || 0;
+  });
+  return blocks;
+}
+
+async function callGeminiDirect(apiKey, imageData, mediaType) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [
+        { inline_data: { mime_type: mediaType, data: imageData } },
+        { text: RECOGNIZE_PROMPT },
+      ]}],
+      generationConfig: { temperature: 0, maxOutputTokens: 4096 },
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${resp.status}`);
   }
-  BLOCKS=blocks;
-  GRID_W=Math.max(...BLOCKS.map(b=>(b.x||0)+(b.w||1)));
-  GRID_H=Math.max(...BLOCKS.map(b=>(b.y||0)+(b.h||1)));
-  document.getElementById("grid-w-inp").value=GRID_W;
-  document.getElementById("grid-h-inp").value=GRID_H;
-  normalizeBlocks();saveToStorage();setMode("play");
-  setStatus(`Loaded ${BLOCKS.length} blocks. Tap Auto-Solve or Hint.`,"hint");
+  const msg = await resp.json();
+  return msg.candidates[0].content.parts[0].text;
+}
+
+async function callServerAnalyze(file) {
+  const form = new FormData();
+  form.append("image", file);
+  const resp = await fetch("/analyze", { method: "POST", body: form });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  return data.blocks;
+}
+
+function triggerScan() { document.getElementById("scan-input").click(); }
+
+document.getElementById("scan-input").addEventListener("change", async function () {
+  const file = this.files[0]; if (!file) return; this.value = "";
+  setStatus("Analyzing screenshot — please wait…", "info");
+  let blocks;
+  try {
+    const apiKey = getApiKey();
+    if (apiKey) {
+      const { data, mediaType } = await resizeImage(file);
+      const raw = await callGeminiDirect(apiKey, data, mediaType);
+      blocks = parseBlocks(raw);
+    } else {
+      blocks = await callServerAnalyze(file);
+    }
+  } catch (e) {
+    const hint = getApiKey()
+      ? "Check your Gemini API key (⚙ button)."
+      : "No API key set. Use Build Level → 📷 Load BG to label tiles manually.";
+    setStatus(`Error: ${e.message}. ${hint}`, "error"); return;
+  }
+  BLOCKS = blocks;
+  GRID_W = Math.max(...BLOCKS.map(b => (b.x || 0) + (b.w || 1)));
+  GRID_H = Math.max(...BLOCKS.map(b => (b.y || 0) + (b.h || 1)));
+  document.getElementById("grid-w-inp").value = GRID_W;
+  document.getElementById("grid-h-inp").value = GRID_H;
+  normalizeBlocks(); saveToStorage(); setMode("play");
+  setStatus(`Loaded ${BLOCKS.length} blocks. Tap Auto-Solve or Hint.`, "hint");
 });
 
-// BACKGROUND IMAGE
-document.getElementById("bg-file").addEventListener("change",function(){
-  const file=this.files[0];if(!file)return;this.value="";
-  const reader=new FileReader();
-  reader.onload=e=>{
-    bgDataUrl=e.target.result;
-    document.getElementById("bg-bar").style.display="flex";
-    if(mode!=="edit")setMode("edit");else drawEditor();
-    setStatus("Screenshot loaded! Adjust X/Y/Zoom to align the grid over your tiles, then click each tile position to label it.","hint");
+/* ---- BACKGROUND IMAGE ---- */
+let bgDataUrl = null;
+
+document.getElementById("bg-file").addEventListener("change", function () {
+  const file = this.files[0]; if (!file) return; this.value = "";
+  const reader = new FileReader();
+  reader.onload = e => {
+    bgDataUrl = e.target.result;
+    document.getElementById("bg-bar").style.display = "flex";
+    if (mode !== "edit") setMode("edit"); else drawEditor();
+    setStatus("Screenshot loaded! Adjust X/Y/Zoom to align the grid, then click each tile to label it.", "hint");
   };
   reader.readAsDataURL(file);
 });
-function clearBg(){bgDataUrl=null;document.getElementById("bg-bar").style.display="none";document.getElementById("board").style.backgroundImage="";drawEditor();setStatus("Background removed.","info");}
 
-buildPalette();syncToolbarFromEdit();refreshSettingsBtn();setMode("play");
+function clearBg() {
+  bgDataUrl = null;
+  document.getElementById("bg-bar").style.display = "none";
+  document.getElementById("board").style.backgroundImage = "";
+  drawEditor();
+  setStatus("Background removed.", "info");
+}
+
+buildPalette();
+syncToolbarFromEdit();
+refreshSettingsBtn();
+setMode("play");
 </script>
 </body>
 </html>
