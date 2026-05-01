@@ -236,6 +236,19 @@
   <button id="tab-edit" onclick="setMode('edit')">✎ Build Level</button>
 </div>
 
+<!-- Background alignment bar (visible when a BG image is loaded) -->
+<div id="bg-bar" style="display:none;background:#2c3e50;padding:8px 16px;border-radius:8px;margin-bottom:8px;flex-wrap:wrap;gap:10px;align-items:center;max-width:720px;">
+  <span style="font-size:12px;color:#f1c40f;font-weight:bold;">📷 BG active — align with X/Y/Zoom, then click tiles to label them</span>
+  <label style="font-size:12px;color:#bdc3c7;">X</label>
+  <input type="number" id="bg-x" value="0" style="width:54px" oninput="drawEditor()">
+  <label style="font-size:12px;color:#bdc3c7;">Y</label>
+  <input type="number" id="bg-y" value="0" style="width:54px" oninput="drawEditor()">
+  <label style="font-size:12px;color:#bdc3c7;">Zoom</label>
+  <input type="number" id="bg-z" value="100" min="10" max="500" style="width:60px" oninput="drawEditor()">
+  <span style="font-size:12px;color:#bdc3c7;">%</span>
+  <button class="ed-btn danger" onclick="clearBg()">✕ Remove BG</button>
+</div>
+
 <!-- Editor toolbar -->
 <div id="editor-bar">
   <div>
@@ -277,6 +290,8 @@
   </div>
   <button class="ed-btn success" onclick="generatePuzzle()" style="background:#1abc9c">⚡ Generate</button>
   <button class="ed-btn eraser" id="eraser-btn" onclick="toggleEraser()">Eraser</button>
+  <button class="ed-btn" onclick="document.getElementById('bg-file').click()" style="background:#8e44ad">📷 Load BG</button>
+  <input type="file" id="bg-file" accept="image/*" style="display:none">
   <button class="ed-btn danger" onclick="clearAllBlocks()">Clear All</button>
   <button class="ed-btn" onclick="openIO('export')">Save</button>
   <button class="ed-btn" onclick="openIO('import')">Load</button>
@@ -509,6 +524,7 @@ function setMode(newMode) {
   document.getElementById("play-controls").style.display = mode === "play" ? "flex" : "none";
 
   if (mode === "play") {
+    document.getElementById("board").style.backgroundImage = "";
     saveToStorage();
     normalizeBlocks();
     reset();
@@ -720,6 +736,19 @@ function generatePuzzle() {
 function drawEditor() {
   const board = document.getElementById("board");
   board.innerHTML = "";
+
+  // Background screenshot (no-API tile labelling aid)
+  if (bgDataUrl) {
+    const bx = parseInt(document.getElementById("bg-x").value) || 0;
+    const by = parseInt(document.getElementById("bg-y").value) || 0;
+    const bz = parseInt(document.getElementById("bg-z").value) || 100;
+    board.style.backgroundImage    = `url(${bgDataUrl})`;
+    board.style.backgroundRepeat   = "no-repeat";
+    board.style.backgroundPosition = `${bx}px ${by}px`;
+    board.style.backgroundSize     = `${bz}%`;
+  } else {
+    board.style.backgroundImage = "";
+  }
 
   // Compute visible canvas size (grid + max layer)
   let maxL = 0;
@@ -1162,6 +1191,36 @@ document.getElementById("scan-input").addEventListener("change", async function 
   setMode("play");
   setStatus(`Loaded ${BLOCKS.length} blocks. Tap Auto-Solve or Hint.`, "hint");
 });
+
+/* =========================================================================
+   BACKGROUND IMAGE (no-API manual entry aid)
+   Load a screenshot as background in the editor so you can click each tile.
+   ========================================================================= */
+
+let bgDataUrl = null;
+
+document.getElementById("bg-file").addEventListener("change", function () {
+  const file = this.files[0];
+  if (!file) return;
+  this.value = "";
+  const reader = new FileReader();
+  reader.onload = e => {
+    bgDataUrl = e.target.result;
+    document.getElementById("bg-bar").style.display = "flex";
+    if (mode !== "edit") setMode("edit");
+    else drawEditor();
+    setStatus("Screenshot loaded as background. Adjust X/Y/Zoom to align the grid, then click tiles to label them.", "hint");
+  };
+  reader.readAsDataURL(file);
+});
+
+function clearBg() {
+  bgDataUrl = null;
+  document.getElementById("bg-bar").style.display = "none";
+  document.getElementById("board").style.backgroundImage = "";
+  drawEditor();
+  setStatus("Background removed.", "info");
+}
 
 /* ---- init ---- */
 buildPalette();
