@@ -213,14 +213,14 @@
 <!-- Settings modal -->
 <div id="settings-modal">
   <div class="box">
-    <h3>Anthropic API Key</h3>
+    <h3>Gemini API Key</h3>
     <p>
       Enter your key once — it is stored only in this browser (localStorage).
-      Get one at <strong>console.anthropic.com</strong>.<br><br>
+      Get a free key at <strong>aistudio.google.com</strong> → Get API key.<br><br>
       With a key saved, <strong>Scan Game</strong> works entirely on your phone
       with no PC required.
     </p>
-    <input type="text" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+    <input type="text" id="api-key-input" placeholder="AIzaSy..." autocomplete="off" spellcheck="false">
     <div class="row">
       <button class="ed-btn success" onclick="saveApiKey()">Save</button>
       <button class="ed-btn danger"  onclick="clearApiKey()">Clear</button>
@@ -997,10 +997,10 @@ function undo() {
 function restart() { reset(); setStatus("Restarted."); }
 
 /* =========================================================================
-   API KEY  (stored in localStorage; used for direct browser → Anthropic calls)
+   API KEY  (stored in localStorage; used for direct browser → Gemini calls)
    ========================================================================= */
 
-const API_KEY_STORAGE = "anthropic_api_key";
+const API_KEY_STORAGE = "gemini_api_key";
 
 function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
 
@@ -1016,7 +1016,7 @@ function saveApiKey() {
   if (key) localStorage.setItem(API_KEY_STORAGE, key);
   refreshSettingsBtn();
   closeSettings();
-  setStatus("API key saved. You can now use Scan Game directly on your phone.", "hint");
+  setStatus("Gemini API key saved. You can now use Scan Game directly on your phone.", "hint");
 }
 function clearApiKey() {
   localStorage.removeItem(API_KEY_STORAGE);
@@ -1031,7 +1031,7 @@ function refreshSettingsBtn() {
 
 /* =========================================================================
    SCREENSHOT SCAN
-   - If an API key is stored → calls Anthropic directly from the browser
+   - If a Gemini API key is stored → calls Gemini directly from the browser
      (works on phone with no PC at all, just needs internet)
    - If no key → falls back to the local server.py /analyze endpoint
      (works on same-WiFi PC setup)
@@ -1088,25 +1088,19 @@ function parseBlocks(jsonText) {
   return blocks;
 }
 
-async function callAnthropicDirect(apiKey, imageData, mediaType) {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+async function callGeminiDirect(apiKey, imageData, mediaType) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const resp = await fetch(url, {
     method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-      "content-type": "application/json",
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: imageData } },
-          { type: "text",  text: RECOGNIZE_PROMPT },
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: mediaType, data: imageData } },
+          { text: RECOGNIZE_PROMPT },
         ],
       }],
+      generationConfig: { temperature: 0, maxOutputTokens: 4096 },
     }),
   });
   if (!resp.ok) {
@@ -1114,7 +1108,7 @@ async function callAnthropicDirect(apiKey, imageData, mediaType) {
     throw new Error(err.error?.message || `HTTP ${resp.status}`);
   }
   const msg = await resp.json();
-  return msg.content[0].text;
+  return msg.candidates[0].content.parts[0].text;
 }
 
 async function callServerAnalyze(file) {
@@ -1141,9 +1135,9 @@ document.getElementById("scan-input").addEventListener("change", async function 
   try {
     const apiKey = getApiKey();
     if (apiKey) {
-      // Phone-standalone path: call Anthropic directly from the browser
+      // Phone-standalone path: call Gemini directly from the browser (free tier)
       const { data, mediaType } = await resizeImage(file);
-      const raw = await callAnthropicDirect(apiKey, data, mediaType);
+      const raw = await callGeminiDirect(apiKey, data, mediaType);
       blocks = parseBlocks(raw);
     } else {
       // PC-server path: POST to local server.py
@@ -1151,8 +1145,8 @@ document.getElementById("scan-input").addEventListener("change", async function 
     }
   } catch (e) {
     const hint = getApiKey()
-      ? "Check that your API key is correct (⚙ button)."
-      : "Make sure server.py is running on your PC on the same WiFi, OR tap ⚙ to enter your API key for phone-only use.";
+      ? "Check that your Gemini API key is correct (⚙ button)."
+      : "Make sure server.py is running on your PC on the same WiFi, OR tap ⚙ to enter your Gemini API key for phone-only use.";
     setStatus(`Error: ${e.message}. ${hint}`, "error");
     return;
   }

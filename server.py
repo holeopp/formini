@@ -5,10 +5,11 @@ Web server for the Match-3 Tile Solver.
 Run:  python3 server.py
 Then open http://<your-pc-ip>:5000 on your phone (same WiFi).
 
-Requires: ANTHROPIC_API_KEY env var, or a .env file with it.
+Requires: GEMINI_API_KEY env var, or a .env file with it.
+Get a free key at aistudio.google.com → Get API key.
 """
 
-import base64
+import io
 import json
 import os
 import re
@@ -21,10 +22,10 @@ try:
 except ImportError:
     pass
 
-import anthropic
+import google.generativeai as genai
+from PIL import Image
 
 app = Flask(__name__)
-client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
 
 RECOGNIZE_PROMPT = """\
 This is a screenshot of a match-3 tile puzzle game (like "3 Tiles", "Tile Busters", etc.).
@@ -63,39 +64,17 @@ def analyze():
     if not raw:
         return jsonify({"error": "Uploaded file is empty."}), 400
 
-    media_type = file.content_type or "image/jpeg"
-    if media_type not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
-        media_type = "image/jpeg"
-
-    image_b64 = base64.standard_b64encode(raw).decode()
-
     try:
-        message = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": image_b64,
-                            },
-                        },
-                        {"type": "text", "text": RECOGNIZE_PROMPT},
-                    ],
-                }
-            ],
+        img = Image.open(io.BytesIO(raw))
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(
+            [RECOGNIZE_PROMPT, img],
+            generation_config={"temperature": 0, "max_output_tokens": 4096},
         )
-    except anthropic.APIError as e:
-        return jsonify({"error": f"Claude API error: {e}"}), 502
+        raw_text = response.text.strip()
+    except Exception as e:
+        return jsonify({"error": f"Gemini API error: {e}"}), 502
 
-    raw_text = message.content[0].text.strip()
-
-    # Strip markdown fences if Claude wrapped the JSON
     raw_text = re.sub(r"^```[a-z]*\n?", "", raw_text)
     raw_text = re.sub(r"\n?```$", "", raw_text)
     raw_text = raw_text.strip()
@@ -103,14 +82,13 @@ def analyze():
     try:
         blocks = json.loads(raw_text)
     except json.JSONDecodeError as exc:
-        return jsonify({"error": f"Could not parse Claude's response as JSON: {exc}",
+        return jsonify({"error": f"Could not parse Gemini's response as JSON: {exc}",
                         "raw": raw_text}), 500
 
     if not isinstance(blocks, list) or not blocks:
-        return jsonify({"error": "Claude returned an empty or non-array response.",
+        return jsonify({"error": "Gemini returned an empty or non-array response.",
                         "raw": raw_text}), 500
 
-    # Normalise and assign ids
     for i, b in enumerate(blocks):
         b["id"] = i + 1
         b.setdefault("w", 1)
@@ -122,14 +100,17 @@ def analyze():
 
 
 if __name__ == "__main__":
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
         print(
-            "\nERROR: ANTHROPIC_API_KEY is not set.\n"
-            "  Export it before running:  export ANTHROPIC_API_KEY=sk-ant-...\n"
-            "  Or create a .env file with ANTHROPIC_API_KEY=sk-ant-...\n"
+            "\nERROR: GEMINI_API_KEY is not set.\n"
+            "  Export it before running:  export GEMINI_API_KEY=AIzaSy...\n"
+            "  Or create a .env file with GEMINI_API_KEY=AIzaSy...\n"
+            "  Get a free key at aistudio.google.com\n"
         )
         raise SystemExit(1)
+
+    genai.configure(api_key=api_key)
 
     import socket
     hostname = socket.gethostname()
