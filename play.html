@@ -136,6 +136,7 @@
   .btn-undo    { background: #3498db; }
   .btn-restart { background: #9b59b6; }
   .btn-solve   { background: #1abc9c; }
+  .btn-scan    { background: #e17055; }
 
   #status {
     min-height: 24px; padding: 8px 14px;
@@ -237,11 +238,14 @@
 <div id="board-wrap"><div id="board"></div></div>
 
 <div class="controls" id="play-controls">
+  <button class="main btn-scan"    onclick="triggerScan()">📷 Scan Game</button>
   <button class="main btn-hint"    onclick="hint()">Hint</button>
   <button class="main btn-undo"    onclick="undo()">Undo</button>
   <button class="main btn-restart" onclick="restart()">Restart</button>
   <button class="main btn-solve"   onclick="autoSolve()">Auto-Solve</button>
 </div>
+<!-- hidden file input: accept images from gallery or camera -->
+<input type="file" id="scan-input" accept="image/*" style="display:none">
 
 <div id="status">Click a block to play.</div>
 
@@ -938,6 +942,62 @@ function undo() {
   setStatus("Undone.");
 }
 function restart() { reset(); setStatus("Restarted."); }
+
+/* =========================================================================
+   SCREENSHOT SCAN  (requires server.py running on the same machine)
+   ========================================================================= */
+
+function triggerScan() {
+  document.getElementById("scan-input").click();
+}
+
+document.getElementById("scan-input").addEventListener("change", async function () {
+  const file = this.files[0];
+  if (!file) return;
+  this.value = "";   // reset so the same file can be re-uploaded
+
+  setStatus("Analyzing screenshot with Claude vision — please wait…", "info");
+
+  const form = new FormData();
+  form.append("image", file);
+
+  let data;
+  try {
+    const resp = await fetch("/analyze", { method: "POST", body: form });
+    data = await resp.json();
+  } catch (e) {
+    setStatus(
+      "Could not reach the server. Make sure server.py is running on your PC " +
+      "and you opened this page via http://<pc-ip>:5000 (not as a local file).",
+      "error"
+    );
+    return;
+  }
+
+  if (data.error) {
+    setStatus("Recognition error: " + data.error, "error");
+    console.error("Raw Claude output:", data.raw);
+    return;
+  }
+
+  BLOCKS = data.blocks;
+
+  // Auto-size the editor grid to fit the recognised board
+  GRID_W = Math.max(...BLOCKS.map(b => (b.x || 0) + (b.w || 1)));
+  GRID_H = Math.max(...BLOCKS.map(b => (b.y || 0) + (b.h || 1)));
+  document.getElementById("grid-w-inp").value = GRID_W;
+  document.getElementById("grid-h-inp").value = GRID_H;
+
+  normalizeBlocks();
+  saveToStorage();
+
+  // Switch to play mode and solve automatically
+  setMode("play");
+  setStatus(
+    `Loaded ${BLOCKS.length} blocks from screenshot. Press Auto-Solve or Hint to continue.`,
+    "hint"
+  );
+});
 
 /* ---- init ---- */
 buildPalette();
