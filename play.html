@@ -252,7 +252,11 @@
 <!-- Editor toolbar -->
 <div id="editor-bar">
   <div>
-    <label>Color:</label>
+    <label>Label:</label>
+    <input type="text" id="custom-label" placeholder="cat, star, anchor…" style="width:110px;font-size:13px" oninput="onCustomLabel(this.value)">
+  </div>
+  <div>
+    <label>Quick:</label>
     <div id="palette"></div>
   </div>
   <div>
@@ -871,9 +875,18 @@ function buildPalette() {
     if (c === edit.color) sw.classList.add("selected");
     sw.onclick = () => {
       edit.color = c;
+      document.getElementById("custom-label").value = "";
       buildPalette();
     };
     pal.appendChild(sw);
+  }
+}
+
+function onCustomLabel(val) {
+  const trimmed = val.trim().toLowerCase().replace(/\s+/g, "_");
+  if (trimmed) {
+    edit.color = trimmed;
+    buildPalette();
   }
 }
 
@@ -891,6 +904,12 @@ function syncToolbarFromEdit() {
   document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
   document.getElementById("grid-w-inp").value = GRID_W;
   document.getElementById("grid-h-inp").value = GRID_H;
+  const customInput = document.getElementById("custom-label");
+  if (PALETTE_ORDER.includes(edit.color)) {
+    customInput.value = "";
+  } else {
+    customInput.value = edit.color;
+  }
   buildPalette();
 }
 
