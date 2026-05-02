@@ -117,6 +117,7 @@
     margin-top: 3px;
     background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 4px;
   }
+  .block .emoji { font-size: 26px; line-height: 1; margin-bottom: 2px; }
   .block.frozen-locked::after {
     content: "";
     position: absolute; inset: 0;
@@ -260,6 +261,10 @@
     <label>Quick:</label>
     <div id="palette" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div>
   </div>
+  <div style="flex-wrap:wrap;max-width:400px">
+    <label>Icons:</label>
+    <div id="emoji-palette" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div>
+  </div>
   <div>
     <label>Kind:</label>
     <select id="kind-sel" onchange="onEditChange()">
@@ -371,6 +376,12 @@ const COLORS = {
   lime:"#a8e063",   teal:"#00b894",   navy:"#2d3561",   maroon:"#c0392b",
   gold:"#f9ca24",   silver:"#b2bec3", coral:"#ff6b6b",  indigo:"#6c5ce7",
   aqua:"#00cec9",   mint:"#55efc4",   peach:"#fab1a0",  sky:"#74b9ff",
+  // emoji label thematic colors
+  strawberry:"#e74c3c", apple:"#c0392b",  watch:"#95a5a6",    grape:"#9b59b6",
+  corn:"#f1c40f",       glasses:"#636e72", ice_cream:"#fd79a8", coconut:"#8b6f47",
+  suitcase:"#2d3561",   banana:"#f9ca24",  telephone:"#27ae60", flower:"#e84393",
+  sofa:"#e67e22",       lamp:"#f9ca24",    umbrella:"#3498db",  tomato:"#e74c3c",
+  carrot:"#e67e22",
 };
 const PALETTE_ORDER = [
   "red","blue","yellow","green","purple","orange","pink","cyan","brown",
@@ -388,6 +399,14 @@ const PATTERNS = [
   "repeating-linear-gradient(0deg,rgba(255,255,255,.25) 0 3px,transparent 3px 9px)",
 ];
 
+const EMOJIS = {
+  strawberry:"🍓", apple:"🍎",    watch:"⌚",    grape:"🍇",
+  corn:"🌽",       glasses:"👓",  ice_cream:"🍦", coconut:"🥥",
+  suitcase:"🧳",   banana:"🍌",   telephone:"📞", flower:"🌸",
+  sofa:"🛋️",      lamp:"💡",     umbrella:"☂️",  tomato:"🍅",
+  carrot:"🥕",
+};
+
 function labelHash(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) & 0x7fffffff;
@@ -396,6 +415,7 @@ function labelHash(str) {
 const ALL_COLORS = Object.values(COLORS);
 const toHex     = c => { const k = (c || "").toLowerCase(); return COLORS[k] || ALL_COLORS[labelHash(k || "x") % ALL_COLORS.length]; };
 const toPattern = c => { const k = (c || "").toLowerCase(); return PATTERNS[labelHash(k || "x") % PATTERNS.length]; };
+const toEmoji   = c => EMOJIS[(c || "").toLowerCase()] || null;
 
 // ============== Mutable level + game state ==============
 
@@ -582,6 +602,14 @@ function draw() {
       cell.classList.add("filled");
       cell.style.backgroundColor = toHex(state.slot[i]);
       cell.style.backgroundImage = toPattern(state.slot[i]);
+      const em = toEmoji(state.slot[i]);
+      if (em) {
+        cell.style.display = "flex";
+        cell.style.alignItems = "center";
+        cell.style.justifyContent = "center";
+        cell.textContent = em;
+        cell.style.fontSize = "20px";
+      }
     }
     slotEl.appendChild(cell);
   }
@@ -636,7 +664,9 @@ function draw() {
     if (isTop && !isFrozenLocked) div.classList.add("top");
     if (isFrozenLocked) div.classList.add("locked", "frozen-locked");
 
+    const em = toEmoji(b.color);
     div.innerHTML =
+      (em ? `<div class="emoji">${em}</div>` : "") +
       `<div class="id">#${b.id}</div>` +
       `<div class="name">${b.color}</div>` +
       (isFrozenLocked ?
@@ -825,7 +855,9 @@ function drawEditor() {
     div.style.zIndex = b.layer * 10 + 1;
     div.style.opacity = (b.layer === edit.layer || edit.eraser) ? "1" : "0.55";
 
+    const em = toEmoji(b.color);
     div.innerHTML =
+      (em ? `<div class="emoji">${em}</div>` : "") +
       `<div class="id">#${b.id} L${b.layer}</div>` +
       `<div class="name">${b.color}</div>` +
       (b.kind !== "normal" ? `<div class="badge">${b.kind.toUpperCase()} ${b.threshold}</div>` : "");
@@ -910,17 +942,46 @@ function buildPalette() {
     sw.onclick = () => {
       edit.color = c;
       document.getElementById("custom-label").value = "";
-      buildPalette();
+      refreshPalettes();
     };
     pal.appendChild(sw);
   }
+}
+
+function buildEmojiPalette() {
+  const pal = document.getElementById("emoji-palette");
+  if (!pal) return;
+  pal.innerHTML = "";
+  for (const [name, emoji] of Object.entries(EMOJIS)) {
+    const sw = document.createElement("div");
+    sw.className = "swatch";
+    sw.style.backgroundColor = toHex(name);
+    sw.style.display = "flex";
+    sw.style.alignItems = "center";
+    sw.style.justifyContent = "center";
+    sw.style.fontSize = "20px";
+    sw.textContent = emoji;
+    sw.title = name;
+    if (name === edit.color) sw.classList.add("selected");
+    sw.onclick = () => {
+      edit.color = name;
+      document.getElementById("custom-label").value = "";
+      refreshPalettes();
+    };
+    pal.appendChild(sw);
+  }
+}
+
+function refreshPalettes() {
+  buildPalette();
+  buildEmojiPalette();
 }
 
 function onCustomLabel(val) {
   const trimmed = val.trim().toLowerCase().replace(/\s+/g, "_");
   if (trimmed) {
     edit.color = trimmed;
-    buildPalette();
+    refreshPalettes();
   }
 }
 
@@ -939,12 +1000,12 @@ function syncToolbarFromEdit() {
   document.getElementById("grid-w-inp").value = GRID_W;
   document.getElementById("grid-h-inp").value = GRID_H;
   const customInput = document.getElementById("custom-label");
-  if (PALETTE_ORDER.includes(edit.color)) {
+  if (PALETTE_ORDER.includes(edit.color) || edit.color in EMOJIS) {
     customInput.value = "";
   } else {
     customInput.value = edit.color;
   }
-  buildPalette();
+  refreshPalettes();
 }
 
 function onGridSizeChange() {
@@ -1276,7 +1337,7 @@ function clearBg() {
 }
 
 /* ---- init ---- */
-buildPalette();
+refreshPalettes();
 syncToolbarFromEdit();
 refreshSettingsBtn();
 setMode("play");
