@@ -322,7 +322,6 @@
   <button class="main btn-restart" onclick="restart()">Restart</button>
   <button class="main btn-solve"   onclick="autoSolve()">Auto-Solve</button>
 </div>
-<!-- hidden file input: accept images from gallery or camera -->
 <input type="file" id="scan-input" accept="image/*" style="display:none">
 
 <div id="status">Click a block to play.</div>
@@ -343,11 +342,6 @@
 </div>
 
 <script>
-/* =========================================================================
-   DEFAULT PUZZLE — used the very first time you open the page.
-   After that your own designs are remembered in your browser automatically.
-   ========================================================================= */
-
 const DEFAULT_BLOCKS = [
   {id:1, color:"red",    layer:0, x:0, y:0},
   {id:2, color:"red",    layer:0, x:1, y:0},
@@ -383,6 +377,7 @@ const COLORS = {
   sofa:"#e67e22",       lamp:"#f9ca24",    umbrella:"#3498db",  tomato:"#e74c3c",
   carrot:"#e67e22",     camera:"#636e72",  swim_ring:"#e17055", broccoli:"#00b894",
   eggplant:"#6c5ce7",   grass_hat:"#f9ca24", car:"#e74c3c",
+  blue_ring:"#3498db",  purple_ring:"#9b59b6",
 };
 const PALETTE_ORDER = [
   "red","blue","yellow","green","purple","orange","pink","cyan","brown",
@@ -407,6 +402,7 @@ const EMOJIS = {
   sofa:"🛋️",      lamp:"💡",     umbrella:"☂️",  tomato:"🍅",
   carrot:"🥕",     camera:"📷",   swim_ring:"🛡️",  broccoli:"🥦",
   eggplant:"🍆",   grass_hat:"👒", car:"🚗",
+  blue_ring:"🔵",  purple_ring:"🟣",
 };
 
 function labelHash(str) {
@@ -418,8 +414,6 @@ const ALL_COLORS = Object.values(COLORS);
 const toHex     = c => { const k = (c || "").toLowerCase(); return COLORS[k] || ALL_COLORS[labelHash(k || "x") % ALL_COLORS.length]; };
 const toPattern = c => { const k = (c || "").toLowerCase(); return PATTERNS[labelHash(k || "x") % PATTERNS.length]; };
 const toEmoji   = c => EMOJIS[(c || "").toLowerCase()] || null;
-
-// ============== Mutable level + game state ==============
 
 let byId, state, history;
 let mode = "play";
@@ -457,10 +451,6 @@ function saveToStorage() {
 function nextId() {
   return BLOCKS.length === 0 ? 1 : Math.max(...BLOCKS.map(b => b.id)) + 1;
 }
-
-/* =========================================================================
-   GAME LOGIC
-   ========================================================================= */
 
 function overlaps(a, b) {
   return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
@@ -551,10 +541,6 @@ function solve(state, byId, maxStates = 300000) {
   return null;
 }
 
-/* =========================================================================
-   UI
-   ========================================================================= */
-
 function setStatus(text, klass="") {
   const el = document.getElementById("status");
   el.textContent = text;
@@ -577,7 +563,6 @@ function setMode(newMode) {
   document.getElementById("editor-bar").classList.toggle("visible", mode === "edit");
   document.getElementById("slot").style.display      = mode === "play" ? "flex" : "none";
   document.getElementById("play-controls").style.display = mode === "play" ? "flex" : "none";
-
   if (mode === "play") {
     document.getElementById("board").style.backgroundImage = "";
     saveToStorage();
@@ -658,12 +643,10 @@ function draw() {
     div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
     div.style.height = (b.h * BLOCK_SIZE - 4) + "px";
     div.style.zIndex = b.layer;
-
     const isFrozenLocked = b.kind === "frozen" && cnt < b.threshold;
     const isTop = access.has(id);
     if (isTop && !isFrozenLocked) div.classList.add("top");
     if (isFrozenLocked) div.classList.add("locked", "frozen-locked");
-
     const em = toEmoji(b.color);
     div.innerHTML =
       (em ? `<div class="emoji">${em}</div>` : "") +
@@ -676,15 +659,10 @@ function draw() {
           `<div class="badge ${b.threshold-cnt<=2 ? 'bomb-warning':''}">BOMB ${b.threshold-cnt}</div>` :
           ""
       );
-
     div.onclick = () => clickBlock(id);
     board.appendChild(div);
   }
 }
-
-/* =========================================================================
-   PUZZLE GENERATOR
-   ========================================================================= */
 
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -770,10 +748,6 @@ function generatePuzzle() {
     setStatus(`Could not generate a solvable puzzle after ${MAX_TRIES} tries. Try a smaller grid or fewer colors.`, "error");
   }, 20);
 }
-
-/* =========================================================================
-   EDITOR
-   ========================================================================= */
 
 function drawEditor() {
   const board = document.getElementById("board");
@@ -977,8 +951,6 @@ function onGridSizeChange() {
   if (mode === "edit") drawEditor();
 }
 
-/* ---- Save/Load JSON via modal ---- */
-
 function openIO(kind) {
   const modal = document.getElementById("io-modal");
   const ta    = document.getElementById("io-text");
@@ -1026,10 +998,6 @@ function openIO(kind) {
   modal.classList.add("visible");
 }
 function closeIO() { document.getElementById("io-modal").classList.remove("visible"); }
-
-/* =========================================================================
-   PLAY ACTIONS
-   ========================================================================= */
 
 function clickBlock(bid) {
   const cmap = new Map(state.counters);
@@ -1098,14 +1066,8 @@ function undo() {
 }
 function restart() { reset(); setStatus("Restarted."); }
 
-/* =========================================================================
-   API KEY
-   ========================================================================= */
-
 const API_KEY_STORAGE = "gemini_api_key";
-
 function getApiKey() { return localStorage.getItem(API_KEY_STORAGE) || ""; }
-
 function openSettings() {
   document.getElementById("api-key-input").value = getApiKey();
   document.getElementById("settings-modal").classList.add("visible");
@@ -1130,10 +1092,6 @@ function clearApiKey() {
 function refreshSettingsBtn() {
   document.getElementById("settings-btn").classList.toggle("keyed", !!getApiKey());
 }
-
-/* =========================================================================
-   SCREENSHOT SCAN
-   ========================================================================= */
 
 const RECOGNIZE_PROMPT = `This is a screenshot of a match-3 tile puzzle game (like "3 Tiles" or "Tile Busters").
 
@@ -1176,11 +1134,8 @@ function parseBlocks(jsonText) {
   let text = jsonText.trim().replace(/^```[a-z]*\n?/, "").replace(/\n?```$/, "").trim();
   const blocks = JSON.parse(text);
   blocks.forEach((b, i) => {
-    b.id = i + 1;
-    b.w  = b.w  || 1;
-    b.h  = b.h  || 1;
-    b.kind      = b.kind      || "normal";
-    b.threshold = b.threshold || 0;
+    b.id = i + 1; b.w = b.w || 1; b.h = b.h || 1;
+    b.kind = b.kind || "normal"; b.threshold = b.threshold || 0;
   });
   return blocks;
 }
@@ -1191,12 +1146,10 @@ async function callGeminiDirect(apiKey, imageData, mediaType) {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: mediaType, data: imageData } },
-          { text: RECOGNIZE_PROMPT },
-        ],
-      }],
+      contents: [{ parts: [
+        { inline_data: { mime_type: mediaType, data: imageData } },
+        { text: RECOGNIZE_PROMPT },
+      ]}],
       generationConfig: { temperature: 0, maxOutputTokens: 4096 },
     }),
   });
@@ -1217,9 +1170,7 @@ async function callServerAnalyze(file) {
   return data.blocks;
 }
 
-function triggerScan() {
-  document.getElementById("scan-input").click();
-}
+function triggerScan() { document.getElementById("scan-input").click(); }
 
 document.getElementById("scan-input").addEventListener("change", async function () {
   const file = this.files[0];
@@ -1253,10 +1204,6 @@ document.getElementById("scan-input").addEventListener("change", async function 
   setMode("play");
   setStatus(`Loaded ${BLOCKS.length} blocks. Tap Auto-Solve or Hint.`, "hint");
 });
-
-/* =========================================================================
-   BACKGROUND IMAGE
-   ========================================================================= */
 
 let bgDataUrl = null;
 
