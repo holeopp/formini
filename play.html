@@ -277,6 +277,14 @@
     <label>Layer:</label>
     <input type="number" id="layer-inp" value="0" min="0" max="9" onchange="onEditChange()">
   </div>
+  <div>
+    <label>Offset:</label>
+    <input type="number" id="offset-x-inp" value="0" min="-5" max="5" step="0.5" onchange="onEditChange()" style="width:52px" title="X offset (0.5 = half step right)">
+    <span style="font-size:11px;color:#bdc3c7;">x</span>
+    <input type="number" id="offset-y-inp" value="0" min="-5" max="5" step="0.5" onchange="onEditChange()" style="width:52px" title="Y offset (0.5 = half step down)">
+    <span style="font-size:11px;color:#bdc3c7;">y</span>
+    <button class="ed-btn" id="half-btn" onclick="toggleHalfStep()" title="Toggle ½-step offset" style="padding:4px 8px;font-size:13px">½</button>
+  </div>
   <div id="thresh-wrap" style="display:none">
     <label>Threshold:</label>
     <input type="number" id="thresh-inp" value="3" min="1" max="20" onchange="onEditChange()">
@@ -425,7 +433,7 @@ const toEmoji   = c => EMOJIS[(c || "").toLowerCase()] || null;
 
 let byId, state, history;   // declared first — used inside normalizeBlocks()
 let mode = "play";
-let edit = { color: "red", kind: "normal", layer: 0, threshold: 3, eraser: false };
+let edit = { color: "red", kind: "normal", layer: 0, threshold: 3, eraser: false, offsetX: 0, offsetY: 0 };
 
 let BLOCKS = loadFromStorage() || JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
 normalizeBlocks();
@@ -832,14 +840,16 @@ function drawEditor() {
   const off = edit.layer * LAYER_OFFSET;
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
+      const bx = x + edit.offsetX;
+      const by = y + edit.offsetY;
       const cell = document.createElement("div");
       cell.className = "grid-cell";
-      cell.style.left = (x * BLOCK_SIZE + off) + "px";
-      cell.style.top  = (y * BLOCK_SIZE + off) + "px";
+      cell.style.left = (bx * BLOCK_SIZE + off) + "px";
+      cell.style.top  = (by * BLOCK_SIZE + off) + "px";
       cell.style.width  = (BLOCK_SIZE - 4) + "px";
       cell.style.height = (BLOCK_SIZE - 4) + "px";
-      cell.style.zIndex = edit.layer * 10;   // sit above lower-layer blocks
-      cell.onclick = () => placeBlock(x, y);
+      cell.style.zIndex = edit.layer * 10;
+      cell.onclick = () => placeBlock(bx, by);
       board.appendChild(cell);
     }
   }
@@ -913,6 +923,8 @@ function editBlock(id) {
   edit.kind  = b.kind;
   edit.layer = b.layer;
   edit.threshold = b.threshold || 3;
+  edit.offsetX = (b.x % 1 + 1) % 1;  // fractional part of x
+  edit.offsetY = (b.y % 1 + 1) % 1;  // fractional part of y
   syncToolbarFromEdit();
   setStatus(`Selected #${id} — toolbar updated. Click again to overwrite or use Eraser to delete.`);
   drawEditor();
@@ -993,7 +1005,19 @@ function onEditChange() {
   edit.kind  = document.getElementById("kind-sel").value;
   edit.layer = parseInt(document.getElementById("layer-inp").value) || 0;
   edit.threshold = parseInt(document.getElementById("thresh-inp").value) || 3;
+  edit.offsetX = parseFloat(document.getElementById("offset-x-inp").value) || 0;
+  edit.offsetY = parseFloat(document.getElementById("offset-y-inp").value) || 0;
   document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
+  if (mode === "edit") drawEditor();
+}
+
+function toggleHalfStep() {
+  const isHalf = edit.offsetX === 0.5 && edit.offsetY === 0.5;
+  edit.offsetX = isHalf ? 0 : 0.5;
+  edit.offsetY = isHalf ? 0 : 0.5;
+  document.getElementById("offset-x-inp").value = edit.offsetX;
+  document.getElementById("offset-y-inp").value = edit.offsetY;
+  document.getElementById("half-btn").style.outline = (!isHalf) ? "2px solid white" : "";
   if (mode === "edit") drawEditor();
 }
 function syncToolbarFromEdit() {
@@ -1003,6 +1027,10 @@ function syncToolbarFromEdit() {
   document.getElementById("thresh-wrap").style.display = edit.kind === "normal" ? "none" : "flex";
   document.getElementById("grid-w-inp").value = GRID_W;
   document.getElementById("grid-h-inp").value = GRID_H;
+  document.getElementById("offset-x-inp").value = edit.offsetX;
+  document.getElementById("offset-y-inp").value = edit.offsetY;
+  document.getElementById("half-btn").style.outline =
+    (edit.offsetX === 0.5 && edit.offsetY === 0.5) ? "2px solid white" : "";
   const customInput = document.getElementById("custom-label");
   if (PALETTE_ORDER.includes(edit.color) || edit.color in EMOJIS) {
     customInput.value = "";
