@@ -293,7 +293,7 @@ const DEFAULT_BLOCKS = [
 
 const MAX_SLOT=7,BLOCK_SIZE=80,LAYER_OFFSET=7;
 let GRID_W=6,GRID_H=5;
-const STORAGE_KEY="match3_level_v2";
+const STORAGE_KEY="match3_level_v3";
 
 const COLORS={
   red:"#e74c3c",    blue:"#3498db",   yellow:"#f1c40f", green:"#2ecc71",
@@ -325,10 +325,9 @@ function labelHash(str){
   return h;
 }
 const ALL_COLORS=Object.values(COLORS);
-const toHex=c=>COLORS[c.toLowerCase()]||ALL_COLORS[labelHash(c.toLowerCase())%ALL_COLORS.length];
-const toPattern=c=>PATTERNS[labelHash(c.toLowerCase())%PATTERNS.length];
+const toHex=c=>{const k=(c||"").toLowerCase();return COLORS[k]||ALL_COLORS[labelHash(k||"x")%ALL_COLORS.length];};
+const toPattern=c=>{const k=(c||"").toLowerCase();return PATTERNS[labelHash(k||"x")%PATTERNS.length];};
 
-const PALETTE_ORDER_SET=new Set(PALETTE_ORDER);
 let byId,state,history;
 let mode="play";
 let edit={color:"red",kind:"normal",layer:0,threshold:3,eraser:false};
@@ -349,7 +348,10 @@ function loadFromStorage(){
     if(!raw)return null;
     const data=JSON.parse(raw);
     if(data.gridW){GRID_W=data.gridW;GRID_H=data.gridH;}
-    return data.blocks||null;
+    const blocks=data.blocks||null;
+    if(!Array.isArray(blocks))return null;
+    const valid=blocks.filter(b=>b&&b.id!=null&&b.color&&b.x!=null&&b.y!=null&&b.layer!=null);
+    return valid.length>0?valid:null;
   }catch(_){return null;}
 }
 function saveToStorage(){localStorage.setItem(STORAGE_KEY,JSON.stringify({blocks:BLOCKS,gridW:GRID_W,gridH:GRID_H}));}
@@ -756,7 +758,6 @@ document.getElementById("scan-input").addEventListener("change",async function()
   setStatus(`Loaded ${BLOCKS.length} blocks. Tap Auto-Solve or Hint.`,"hint");
 });
 
-let bgDataUrl=null;
 document.getElementById("bg-file").addEventListener("change",function(){
   const file=this.files[0];if(!file)return;this.value="";
   const reader=new FileReader();
