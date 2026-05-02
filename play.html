@@ -37,10 +37,11 @@
   #editor-bar > div { display: flex; align-items: center; gap: 6px; }
   #editor-bar label { font-size: 12px; color: #bdc3c7; }
   .swatch {
-    width: 28px; height: 28px;
+    width: 34px; height: 34px;
     border-radius: 6px; cursor: pointer;
     border: 3px solid transparent;
     transition: transform .08s;
+    flex-shrink: 0;
   }
   .swatch:hover { transform: scale(1.1); }
   .swatch.selected { border-color: #ecf0f1; }
@@ -255,9 +256,9 @@
     <label>Label:</label>
     <input type="text" id="custom-label" placeholder="cat, star, anchor…" style="width:110px;font-size:13px" oninput="onCustomLabel(this.value)">
   </div>
-  <div>
+  <div style="flex-wrap:wrap;max-width:280px">
     <label>Quick:</label>
-    <div id="palette"></div>
+    <div id="palette" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"></div>
   </div>
   <div>
     <label>Kind:</label>
@@ -364,12 +365,37 @@ let   GRID_H       = 5;   // editor grid height (editable)
 const STORAGE_KEY  = "match3_level_v2";
 
 const COLORS = {
-  red:"#e74c3c", blue:"#3498db", yellow:"#f1c40f", green:"#2ecc71",
-  purple:"#9b59b6", orange:"#e67e22", pink:"#fd79a8", cyan:"#1abc9c",
-  white:"#ecf0f1", black:"#2c3e50", brown:"#8b6f47",
+  red:"#e74c3c",    blue:"#3498db",   yellow:"#f1c40f", green:"#2ecc71",
+  purple:"#9b59b6", orange:"#e67e22", pink:"#fd79a8",   cyan:"#1abc9c",
+  white:"#ecf0f1",  black:"#2c3e50",  brown:"#8b6f47",
+  lime:"#a8e063",   teal:"#00b894",   navy:"#2d3561",   maroon:"#c0392b",
+  gold:"#f9ca24",   silver:"#b2bec3", coral:"#ff6b6b",  indigo:"#6c5ce7",
+  aqua:"#00cec9",   mint:"#55efc4",   peach:"#fab1a0",  sky:"#74b9ff",
 };
-const PALETTE_ORDER = ["red","blue","yellow","green","purple","orange","pink","cyan","white","black","brown"];
-const toHex = c => COLORS[c.toLowerCase()] || "#bdc3c7";
+const PALETTE_ORDER = [
+  "red","blue","yellow","green","purple","orange","pink","cyan","brown",
+  "lime","teal","gold","coral","indigo","aqua","navy","mint","peach","sky","maroon",
+];
+
+const PATTERNS = [
+  "none",
+  "repeating-linear-gradient(45deg,rgba(0,0,0,.18) 0 3px,transparent 3px 9px)",
+  "repeating-linear-gradient(-45deg,rgba(0,0,0,.18) 0 3px,transparent 3px 9px)",
+  "repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 3px,transparent 3px 9px)",
+  "repeating-linear-gradient(90deg,rgba(0,0,0,.18) 0 3px,transparent 3px 9px)",
+  "repeating-linear-gradient(45deg,rgba(255,255,255,.25) 0 3px,transparent 3px 9px)",
+  "repeating-linear-gradient(-45deg,rgba(255,255,255,.25) 0 3px,transparent 3px 9px)",
+  "repeating-linear-gradient(0deg,rgba(255,255,255,.25) 0 3px,transparent 3px 9px)",
+];
+
+function labelHash(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) & 0x7fffffff;
+  return h;
+}
+const ALL_COLORS = Object.values(COLORS);
+const toHex     = c => COLORS[c.toLowerCase()] || ALL_COLORS[labelHash(c.toLowerCase()) % ALL_COLORS.length];
+const toPattern = c => PATTERNS[labelHash(c.toLowerCase()) % PATTERNS.length];
 
 // ============== Mutable level + game state ==============
 
@@ -550,7 +576,8 @@ function draw() {
     cell.className = "cell";
     if (i < state.slot.length) {
       cell.classList.add("filled");
-      cell.style.background = toHex(state.slot[i]);
+      cell.style.backgroundColor = toHex(state.slot[i]);
+      cell.style.backgroundImage = toPattern(state.slot[i]);
     }
     slotEl.appendChild(cell);
   }
@@ -592,7 +619,8 @@ function draw() {
     const off = b.layer * LAYER_OFFSET;
     const div = document.createElement("div");
     div.className = "block";
-    div.style.background = toHex(b.color);
+    div.style.backgroundColor = toHex(b.color);
+    div.style.backgroundImage = toPattern(b.color);
     div.style.left = (b.x * BLOCK_SIZE + off) + "px";
     div.style.top  = (b.y * BLOCK_SIZE + off) + "px";
     div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
@@ -784,7 +812,8 @@ function drawEditor() {
     const off = b.layer * LAYER_OFFSET;
     const div = document.createElement("div");
     div.className = "block editable top";
-    div.style.background = toHex(b.color);
+    div.style.backgroundColor = toHex(b.color);
+    div.style.backgroundImage = toPattern(b.color);
     div.style.left = (b.x * BLOCK_SIZE + off) + "px";
     div.style.top  = (b.y * BLOCK_SIZE + off) + "px";
     div.style.width  = (b.w * BLOCK_SIZE - 4) + "px";
@@ -870,7 +899,8 @@ function buildPalette() {
   for (const c of PALETTE_ORDER) {
     const sw = document.createElement("div");
     sw.className = "swatch";
-    sw.style.background = toHex(c);
+    sw.style.backgroundColor = toHex(c);
+    sw.style.backgroundImage = toPattern(c);
     sw.title = c;
     if (c === edit.color) sw.classList.add("selected");
     sw.onclick = () => {
